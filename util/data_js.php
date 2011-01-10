@@ -9,6 +9,7 @@ foreach ($model->fields as $column) {
 }
 
 $rows = $db->select($sql->sql());
-echo json_encode($rows);
+
+echo HtmlUtils::jsonEncode($rows);
 ?>
 }
