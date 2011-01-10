@@ -1,19 +1,25 @@
 <?php
-function test() {
-	$view = new View();
-}
-?>
-(function() {
-	Tantalum.<?php echo $view->model->getName() ?>Store = Ext.extend(Ext.data.JsonStore, {
+/**
+ * @param Model $model
+ * @param boolean $root
+ */
+function printStore($model, $root) {
+	?>
+	Tantalum.<?php echo $model->getName() ?>Store = Ext.extend(Ext.data.JsonStore, {
 		constructor : function(cfg) {
 			cfg = cfg || {};
-			Tantalum.<?php echo $view->model->getName() ?>Store.superclass.constructor.call(this, Ext.apply( {
-				url : 'data.php?id=<?php echo $view->model->getId() ?>',
-				root : '<?php echo $view->model->getName() ?>',
-				idProperty : '<?php echo $view->model->getPrimaryKey()->getName() ?>',
+			Tantalum.<?php echo $model->getName() ?>Store.superclass.constructor.call(this, Ext.apply( {
+				<?php
+				if ($root) {
+					echo "url : 'data.php?id=" . $model->getId() ."', ";
+				}
+				?>
+				autoDestroy : true,
+				root : '<?php echo $model->getName() ?>',
+				idProperty : '<?php echo $model->getPrimaryKey()->getName() ?>',
 				fields : [ <?php
 					$started = false;
-					foreach ($view->model->fields as $field) {
+					foreach ($model->fields as $field) {
 						echo $started ? ", " : "";
 						echo "{ name: '" . $field->getName() ."'}";
 						$started = true;
@@ -22,14 +28,30 @@ function test() {
 			}, cfg));
 		}
 	});
-	var <?php echo $view->model->getName() ?>Store = new Tantalum.<?php echo $view->model->getName() ?>Store();
-	<?php echo $view->model->getName() ?>Store.load();
+	var <?php echo $model->getName() ?>Store = new Tantalum.<?php echo $model->getName() ?>Store();
+	<?php
+	foreach ($model->childModels as $childModel) {
+		printStore($childModel, false);
+	}
+}
+
+/**
+ * @param View $view
+ */
+function printView($view) {
+	echo ", {";
 	
-	var page = new Ext.grid.EditorGridPanel( {
+	if ($view->data["viewType"] == "HorizontalContainer") {
+		
+	} else if ($view->data["viewType"] == "BasicTable") {
+		?>
+		xtype: 'editorgrid',
 		defaults : {
 			sortable : true
 		},
 		stripeRows : true,
+		autoScroll:true,
+		autoHeight: true,
 		columns : [ <?php
 			$started = false;
 			foreach ($view->getFields() as $field) {
@@ -50,8 +72,62 @@ function test() {
 		refresh : function() {
 			this.store.reload();
 		},
-		store : <?php echo $view->model->getName() ?>Store,
-		title : '<?php echo $view->data["label"] ?>'
+		store : <?php echo $view->model->getName() ?>Store
+		<?php
+	} else {
+		?>
+		xtype: 'form',
+		border: true,
+		items: [
+			<?php
+			$started = false;
+			foreach ($view->getFields() as $field) {
+				echo $started ? ", " : "";
+				echo "{
+					xtype: 'textfield',
+					fieldLabel: '" . $field->data["label"] ."',
+					name: '" . $field->data["name"] ."'
+				}";
+				$started = true;
+			}
+			?>
+		]
+		<?php
+	}
+	echo "}";
+	foreach ($view->childViews as $childView) {
+		//printView($childView);
+	}
+}
+?>
+(function() {
+	<?php
+	printStore($view->model, true);
+	?>
+	<?php echo $view->model->getName() ?>Store.load();
+	
+	var page = new Ext.Container({
+		title : '<?php echo $view->data["label"] ?>',
+		items: [{
+        	xtype: 'toolbar',
+    		items: [{
+    			text: 'Search'
+    		},{
+    			text: 'Refresh'
+    		},{
+    			text: 'Save'
+    		},{
+    			text: 'Delete'
+    		},
+    		'->', // same as {xtype: 'tbfill'}, // Ext.Toolbar.Fill
+    		{
+    			text: '<< Previous'
+    		},{
+    			text: 'Next >>'
+    		}]
+		}
+		<?php printView($view) ?>
+		]
 	});
 
 	return page;

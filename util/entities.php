@@ -23,12 +23,17 @@ abstract class BaseTable {
 }
 
 class View extends BaseTable {
+	/**
+	 * @var View
+	 */
+	public $parent = null;
 	public $childViews = array();
 	public $buttons = array();
 	/**
 	 * @var Model
 	 */
 	public $model;
+	private $modelIndex = array();
 	
 	public function __construct($data) {
 		parent::__construct($data);
@@ -78,6 +83,10 @@ class View extends BaseTable {
 }
 
 class Model extends BaseTable {
+	/**
+	 * @var Model
+	 */
+	public $parent = null;
 	public $childModels = array();
 	public $references = array();
 	public $fields = array();

@@ -48,7 +48,7 @@ class ModelDAO extends BaseDAO {
 			$field = new Field($row);
 			$model->fields[] = $field;
 		}
-		
+
 		// Get the child models
 		$sql = Model::sql();
 		$sql->addWhere("m.parentID = '$id'");
@@ -83,12 +83,32 @@ class ViewDAO extends BaseDAO {
 		$modelID = $view->data["modelID"];
 		if (!is_null($modelID)) {
 			$dao = new ModelDAO($this->_db);
-			$view->model = $dao->build($modelID);
+			$model = $dao->build($modelID);
+			// $model->printOut();
+			$this->setModel($view, $model);
+			//echo $view->model->getId();
 		}
-		
+
 		$this->fill($view);
 
 		return $view;
+	}
+
+	/**
+	 * Fill in the models for each View
+	 * @param View $view
+	 * @param Model $model
+	 */
+	private function setModel(&$view, $model) {
+		if (!is_object($model)) {
+			return;
+		}
+		if ($view->data["modelID"] == $model->getId()) {
+			$view->model = $model;
+		}
+		foreach ($view->childViews as $childView) {
+			// $this->setModel($childView, $model);
+		}
 	}
 
 	/**
@@ -101,6 +121,7 @@ class ViewDAO extends BaseDAO {
 		$rows = $this->_db->select($sql->sql());
 		foreach ($rows as $row) {
 			$view2 = new View($row);
+			$view2->parent = $view;
 			$view->childViews[] = $view2;
 			$this->fill($view2);
 		}
