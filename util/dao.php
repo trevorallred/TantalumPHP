@@ -4,6 +4,7 @@ require_once 'entities.php';
 require_once 'sql.php';
 require_once 'db.php';
 require_once 'common.php';
+require_once 'cache.php';
 
 abstract class BaseDAO {
 	/**
@@ -39,25 +40,70 @@ class ModelDAO extends BaseDAO {
 	 * @param Model $model
 	 */
 	private function fill($model) {
-		$sql = Field::sql();
 		$id = $model->getId();
+		
+		$sql = Field::sql();
 		$sql->addWhere("f.modelID = '$id'");
-		// echo "Filling model " . $sql->sql();
 		$rows = $this->_db->select($sql->sql());
 		foreach ($rows as $row) {
 			$field = new Field($row);
 			$model->fields[] = $field;
 		}
 
+		$sql = Reference::sql();
+		$sql->addWhere("r.modelID = '$id'");
+		$rows = $this->_db->select($sql->sql());
+		foreach ($rows as $row) {
+			$o2 = new Reference($row);
+			$o2->model = $model;
+			$model->references[] = $o2;
+		}
+		
 		// Get the child models
 		$sql = Model::sql();
 		$sql->addWhere("m.parentID = '$id'");
 		$rows = $this->_db->select($sql->sql());
 		foreach ($rows as $row) {
 			$o2 = new Model($row);
+			$o2->parent = $model;
 			$model->childModels[] = $o2;
 			$this->fill($o2);
 		}
+		Cache::write("Model", $model->getId(), $model);
+	}
+	/**
+	 * 
+	 * @param Model $model
+	 * @param unknown_type $parents
+	 */
+	public function getData($model, $parents) {
+		//echo $model->getName() . "<br>";
+		$sql = new QueryBuilder();
+		$sql->fromTable = $model->data['basisTableDbName'] . " t0";
+		foreach ($model->fields as $column) {
+			$sql->addField("t0." . $column->data['basisColumnDbName'] . " AS " . $column->data['name']);
+		}
+		
+		if ($parents != null && count($parents) > 0) {
+			$ref = $model->getParentReference();
+			$toField = $ref->getToField();
+			
+			$ids = array();
+			foreach ($parents as $row) {
+				$ids[] = "'".$row[$toField->getName()]."'";
+			}
+			$sql->addWhere($ref->getFromField()->data["basisColumnDbName"] . " IN (" . implode(", ", $ids) . ")");
+		}
+		$data[$model->data['name']] = $this->_db->select($sql->sql());
+		
+		foreach ($model->childModels as $childModel) {
+			$d2 = $this->getData($childModel, $data[$model->data['name']]);
+			foreach ($d2 as $key=>$value) {
+				$data[$key] = $value;
+			}
+		}
+		
+		return $data;
 	}
 }
 
@@ -84,11 +130,7 @@ class ViewDAO extends BaseDAO {
 		if (!is_null($modelID)) {
 			$dao = new ModelDAO($this->_db);
 			$model = $dao->build($modelID);
-			// $model->printOut();
-			$this->setModel($view, $model);
-			//echo $view->model->getId();
 		}
-
 		$this->fill($view);
 
 		return $view;
@@ -96,21 +138,22 @@ class ViewDAO extends BaseDAO {
 
 	/**
 	 * Fill in the models for each View
-	 * @param View $view
 	 * @param Model $model
 	 */
-	private function setModel(&$view, $model) {
-		if (!is_object($model)) {
-			return;
-		}
+	private function indexModels($model) {
 		if ($view->data["modelID"] == $model->getId()) {
 			$view->model = $model;
 		}
-		foreach ($view->childViews as $childView) {
-			// $this->setModel($childView, $model);
+		$index = array();
+		
+		$index[$model->getId()] = $model;
+		foreach ($model->childModel as $child) {
+			$indexOfChildren = $this->indexModels($child);
+			$index = array_merge($index, $indexOfChildren);
 		}
+		return $index;
 	}
-
+	
 	/**
 	 * @param View $view
 	 */

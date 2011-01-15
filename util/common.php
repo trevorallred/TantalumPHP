@@ -23,12 +23,12 @@ class HtmlUtils {
 	static public function jsonEncode($var) {
 		if (function_exists("json_encode")) {
 			// Use the native PHP method, only available in 5.3+
-			echo json_encode($rows);
+			echo json_encode($var);
 		} else {
 			// Use the PEAR method
 			require_once("Services/JSON.php");
 			$json = new Services_JSON();
-			echo $json->encode($rows);
+			echo $json->encode($var);
 		}
 	}
 }

@@ -10,8 +10,16 @@ try {
 		$model->printOut();
 		die();
 	}
-	require("util/data_js.php");
+	if ($action == 'save') {
+		print_r($_POST);
+		die();
+	}
+	$data = $dao->getData($model, null);
+
+	echo HtmlUtils::jsonEncode($data);
+	
 } catch (Exception $e) {
 	die($e->getMessage());
 }
+
 ?>

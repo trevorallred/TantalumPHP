@@ -68,6 +68,9 @@ class QueryBuilder {
 	}
 
 	public function addWhere($where) {
+		if (empty($where)) {
+			return;
+		}
 		$this->whereClause[] = $where;
 	}
 

@@ -12,8 +12,11 @@ if ($SETS['logging']['error_reporting'] == "E_ALL") {
 
 require_once 'db.php';
 $connection = Database::getConnection($SETS['db']);
-if ($connection == null)
-die("Failed to connect to Database");
+if ($connection == null) {
+	die("Failed to connect to Database");
+}
 $db = new Database($connection);
 
+// include_once 'util/cache/Cache.php';
+// Cache::setStore($SETS['cache']['cache_directory']);
 ?>

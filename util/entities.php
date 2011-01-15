@@ -33,7 +33,6 @@ class View extends BaseTable {
 	 * @var Model
 	 */
 	public $model;
-	private $modelIndex = array();
 	
 	public function __construct($data) {
 		parent::__construct($data);
@@ -48,8 +47,8 @@ class View extends BaseTable {
 				$o->printOut();
 			}
 		}
-		if (is_object($this->model)) {
-			echo "<br>" . $this->model->printOut();
+		if (is_object($this->getModel())) {
+			echo "<br>" . $this->getModel()->printOut();
 		}
 		echo "</ul>";
 	}
@@ -63,7 +62,18 @@ class View extends BaseTable {
 		}
 		return $fields;
 	}
-
+	
+	public function getModel() {
+		if (!is_object($this->model)) {
+			$this->model = Cache::read("Model", $this->data["modelID"]);
+		}
+		return $this->model;
+	}
+	
+	public function isRoot() {
+		return $this->parent == null;
+	}
+	
 	/**
 	 * @return QueryBuilder
 	 */
@@ -98,6 +108,24 @@ class Model extends BaseTable {
 	public function getPrimaryKey() {
 		// TODO make this accurate
 		return $this->fields[0];
+	}
+	
+	public function findField($columnID) {
+		foreach ($this->fields as $field) {
+			if ($field->data["basisColumnID"] == $columnID) {
+				return $field;
+			}
+		}
+		return null;
+	}
+	
+	public function getParentReference() {
+		foreach ($this->references as $reference) {
+			if ($this->data["referenceID"] == $reference->getId()) {
+				return $reference;
+			}
+		}
+		return null;
 	}
 	
 	public function printOut() {
@@ -172,6 +200,10 @@ class Field extends BaseTable {
 
 class Reference extends BaseTable {
 	public $joinColumns = array();
+	/**
+	 * @var Model
+	 */
+	public $model;
 
 	public function __construct($data) {
 		parent::__construct($data);
@@ -180,6 +212,15 @@ class Reference extends BaseTable {
 	public function printOut() {
 		echo "REFERENCE:<br>";
 		HtmlUtils::printTable($this->data);
+		echo "<p>From:" . $this->getFromField() . " To:" . $this->getToField() . "</p>";
+	}
+	
+	public function getFromField() {
+		return $this->model->findField($this->data["fromColumnID"]);
+	}
+
+	public function getToField() {
+		return $this->model->parent->findField($this->data["toColumnID"]);
 	}
 
 	/**
@@ -188,12 +229,18 @@ class Reference extends BaseTable {
 	static public function sql() {
 		$sql = new QueryBuilder();
 		$sql->fromTable = "tan_reference r";
-		$sql->addField("r.*");
+		$sql->addField("r.id");
+		$sql->addField("r.parentID");
+		$sql->addField("r.name");
 
-		$sql->addJoin("tan_join j ON j.id = joinID");
+		$sql->addJoin("tan_join j ON j.id = r.joinID");
 		$sql->addField("j.joinType");
-		$sql->addJoin("tan_join j ON j.id = joinID");
 
+		$sql->addJoin("tan_join_column jc ON j.id = jc.joinID");
+		$sql->addField("jc.fromColumnID");
+		$sql->addField("jc.fromText");
+		$sql->addField("jc.toColumnID");
+		
 		return $sql;
 	}
 

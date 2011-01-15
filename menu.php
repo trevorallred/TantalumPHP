@@ -1,12 +1,6 @@
 <?php
 require_once("util/startup.php");
-
-try {
-} catch (Exception $e) {
-	die($e->getMessage());
-}
 ?>
-
 Ext.ns('Tantalum');
 
 function onMenuClick(item) {
@@ -25,38 +19,6 @@ function onMenuClick(item) {
 	});
 }
 
-function refresh(item) {
-	var currentPanel = Ext.ComponentMgr.get('contentPanel').getActiveTab();
-	var currentFunction = currentPanel.refresh;
-	if (currentFunction === undefined)
-		return;
-	currentFunction.call(currentPanel);
-}
-
-function savePage(item) {
-	var currentPanel = Ext.ComponentMgr.get('contentPanel').getActiveTab();
-	var currentFunction = currentPanel.save;
-	if (currentFunction === undefined)
-		return;
-	currentFunction.call(currentPanel);
-}
-
-function insertRecord(item) {
-	var currentPanel = Ext.ComponentMgr.get('contentPanel').getActiveTab();
-	var currentFunction = currentPanel.insertRecord;
-	if (currentFunction === undefined)
-		return;
-	currentFunction.call(currentPanel);
-}
-
-function deleteRecord(item) {
-	var currentPanel = Ext.ComponentMgr.get('contentPanel').getActiveTab();
-	var currentFunction = currentPanel.deleteRecord;
-	if (currentFunction === undefined)
-		return;
-	currentFunction.call(currentPanel);
-}
-
 Tantalum.Menu = Ext.extend(Ext.Panel, {
 	region : 'north',
 	bbar : [ {
@@ -64,25 +26,6 @@ Tantalum.Menu = Ext.extend(Ext.Panel, {
 		text : '<b>Tantalum</b>'
 	}, {
 		xtype : 'tbseparator'
-	}, {
-		text : 'Edit',
-		menu : [ {
-			text : 'Refresh',
-			handler : refresh,
-			iconCls : 'icon-refresh'
-		}, {
-			text : 'Save (Ctrl+Shift+S)',
-			handler : savePage,
-			iconCls : 'icon-disk'
-		}, {
-			text : 'Insert (Ctrl+Shift+I)',
-			handler : insertRecord,
-			iconCls : 'icon-plus'
-		}, {
-			text : 'Delete (Ctrl+Shift+D)',
-			handler : deleteRecord,
-			iconCls : 'icon-minus'
-		} ]
 	}, {
 		xtype : 'button',
 		text : 'Test',

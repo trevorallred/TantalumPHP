@@ -15,3 +15,6 @@ password     =
 
 [logging]
 error_reporting = E_ALL
+
+[cache]
+cache_directory = C:/Windows/Temp/
