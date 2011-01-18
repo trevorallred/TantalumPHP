@@ -5,8 +5,6 @@
  */
 function printStore($model, $root) {
 	?>
-	var saveQueue = new Object();
-	var writer = new Ext.data.JsonWriter({});
 	Tantalum.<?php echo $model->getName() ?>Store = Ext.extend(Ext.data.JsonStore, {
 		constructor : function(cfg) {
 			cfg = cfg || {};
@@ -76,9 +74,11 @@ function printView($view) {
 	} else if ($view->data["viewType"] == "BasicTable") {
 		?>
 		, {
-			xtype: 'editorgrid',
-			height : 100,
+			xtype : 'editorgrid',
+			flex : 1,
 			defaults : {
+				xtype : 'gridcolumn',
+				width: 120,
 				sortable : true
 			},
 			stripeRows : true,
@@ -87,6 +87,7 @@ function printView($view) {
 					rowselect : {
 						fn : function(sm, index, record) {
 							page.currentStore = <?php echo $view->getModel()->getName() ?>Store;
+							page.currentSelectionModel = sm;
 							<?php
 							foreach ($view->getModel()->childModels as $childModel) {
 								?>
@@ -104,16 +105,21 @@ function printView($view) {
 				$started = false;
 				foreach ($view->getFields() as $field) {
 					echo $started ? ", " : "";
-					echo "{
-						header: '" . $field->data["label"] ."',
-						xtype : 'gridcolumn',
-						width : 150,
-						dataIndex : '" . $field->data["name"] ."',
-						editor : {
-							xtype : 'textfield'
-						}
-					}";
 					$started = true;
+					
+					$json["header"] = $field->data["label"];
+					$json["dataIndex"] = $field->data["name"];
+					$json["editable"] = $field->data["editable"] == 1 ? "true" : "false";
+					switch ($field->data["displayType"]) {
+						case "Checkbox":
+							$xtype = "checkbox";
+							break;
+						default:
+							$xtype = "textfield";
+					}
+					$json["editor"]["xtype"] = $xtype;
+					
+					HtmlUtils::jsonEncode($json);
 				}
 			?> ],
 			refresh : function() {
@@ -153,6 +159,9 @@ function printView($view) {
 }
 ?>
 (function() {
+	var saveQueue = new Object();
+	var writer = new Ext.data.JsonWriter({});
+	
 	<?php
 	printStore($view->getModel(), true);
 	?>
@@ -160,8 +169,13 @@ function printView($view) {
 	
 	var page = new Ext.Container({
 		currentStore : null,
+		currentSelectionModel : null,
 		height : 300,
 		title : '<?php echo $view->data["label"] ?>',
+		layout : 'vbox',
+		layoutConfig : {
+		    align : 'stretch'
+		},
 		items: [{
         	xtype: 'toolbar',
     		items: [{
@@ -175,6 +189,8 @@ function printView($view) {
     			text: 'Refresh'
     		},{
     			iconCls : 'icon-disk',
+    			itemId : 'save',
+    			disabled : true,
     			handler: function(button, event) {
 					var savejson = new Object();
 					var savejsonModel = new Object();
@@ -222,9 +238,10 @@ function printView($view) {
     		},{
     			iconCls : 'icon-minus',
     			handler: function(b, e) {
-					if (this.currentStore === null)
+    				if (page.currentStore == null)
 						return;
-					<?php echo $view->getModel()->getName() ?>Store.removeAt(0);
+					var rows = page.currentSelectionModel.getSelections();
+					page.currentStore.remove(rows);
     			},
     			text: 'Delete'
     		},{
