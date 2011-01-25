@@ -23,12 +23,24 @@ class HtmlUtils {
 	static public function jsonEncode($var) {
 		if (function_exists("json_encode")) {
 			// Use the native PHP method, only available in 5.3+
-			echo json_encode($var);
+			return json_encode($var);
 		} else {
 			// Use the PEAR method
 			require_once("Services/JSON.php");
 			$json = new Services_JSON();
-			echo $json->encode($var);
+			return $json->encode($var);
+		}
+	}
+	
+	static public function jsonDecode($var) {
+		if (function_exists("json_decode")) {
+			// Use the native PHP method, only available in 5.3+
+			return json_decode($var);
+		} else {
+			// Use the PEAR method
+			require_once("Services/JSON.php");
+			$json = new Services_JSON();
+			return $json->decode($var);
 		}
 	}
 }
