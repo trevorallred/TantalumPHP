@@ -1,11 +1,11 @@
 <?php
 
-class QueryBuilder {
+class SelectSQL {
 	public $fromTable;
 	private $fields = array();
 	private $joinClause = array();
 	public $whereClause = array();
-	public $orderBys = array();
+	private $orderBys = array();
 	public $startRow = 0;
 	public $limit = -1;
 
@@ -74,6 +74,85 @@ class QueryBuilder {
 		$this->whereClause[] = $where;
 	}
 
+	public function addOrderBy($column, $asc=TRUE) {
+		$this->orderBys[] = $column . ($asc ? "" : " DESC");
+	}
+
+}
+
+class UpdateSQL {
+	public $fromTable;
+	private $fields = array();
+	public $whereClause = array();
+	public $limit = -1;
+	public $insert = FALSE;
+
+	/**
+	 * @param String $fromTable The database table to update
+	 */
+	public function __construct($fromTable) {
+		$this->fromTable = $fromTable;
+	}
+
+	/**
+	 * Return the sql clause in this format:<br>
+	 * <br>
+	 * UPDATE {table} SET {field='<String>'} [,{field='<String>'}...] [WHERE
+	 * {whereClause}] [LIMIT {limit}]<br>
+	 * OR<br>
+	 * INSERT INTO {table} SET {fields<String>}
+	 */
+	public function sql() {
+		$sql = "";
+
+		if ($this->insert) {
+			$sql = "INSERT INTO ";
+		} else {
+			$sql = "UPDATE ";
+		}
+		$sql .= $this->fromTable . " SET ";
+
+		$first = TRUE;
+
+		foreach ($this->fields as $key=>$value) {
+			if ($first) {
+				$first = FALSE;
+			} else {
+				$sql .= ", ";
+			}
+
+			$sql .= "\n" . $key ." = ";
+			if ($value == null)
+				$sql .= "NULL";
+			else if ($value == "NOW()")
+				$sql .= $value;
+			else
+				$sql .= "'".$value."'";
+		}
+
+		if (!$this->insert) {
+			if (count($this->whereClause) > 0) {
+				$sql .= "\nWHERE (" . implode(") AND (", $this->whereClause) . ")";
+			}
+
+			if ($this->limit >= 0) {
+				$sql .= "\nLIMIT ";
+				$sql .= $this->limit;
+			}
+		}
+		return $sql;
+	}
+
+	public function addField($name, $value) {
+		$this->fields[$name] = $value;
+	}
+
+	public function addWhere($where) {
+		if (empty($where)) {
+			return;
+		}
+		$this->whereClause[] = $where;
+	}
 }
 
 ?>

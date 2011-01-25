@@ -47,6 +47,24 @@ class Database {
 		return $rows;
 	}
 	
+	public function update($sql) {
+		$query = $this->_connection->query($sql);
+		if (!$query) {
+			throw new Exception(mysqli_error($this->_connection) . ": $sql");
+		}
+	}
+	
+	public function UUID() {
+		$query = $this->_connection->query("SELECT UUID() id");
+		
+		if (!$query) {
+			throw new Exception(mysqli_error($this->_connection) . ": $sql");
+		}
+
+		$r = $query->fetch_assoc();
+		return $r["id"];
+	}
+	
 	public function getError() {
 		return $this->_error;
 	}
