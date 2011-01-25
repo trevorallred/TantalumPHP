@@ -78,10 +78,21 @@ class ModelDAO extends BaseDAO {
 	 */
 	public function getData($model, $parents) {
 		//echo $model->getName() . "<br>";
-		$sql = new QueryBuilder();
+		$sql = new SelectSQL();
 		$sql->fromTable = $model->data['basisTableDbName'] . " t0";
+		$sorting = array();
 		foreach ($model->fields as $column) {
 			$sql->addField("t0." . $column->data['basisColumnDbName'] . " AS " . $column->data['name']);
+			if ($column->data["sortOrder"] > 0) {
+				$sorting[] = $column;
+			}
+		}
+		if (count($sorting) > 0) {
+			usort($sorting, "fieldSortOrder");
+			foreach ($sorting as $column) {
+				$sql->addOrderBy($column->data['name'], $column->data['sortDirection'] != "DESC");
+			}
+			//HtmlUtils::printPre($sorting);
 		}
 		
 		if ($parents != null && count($parents) > 0) {
@@ -94,6 +105,7 @@ class ModelDAO extends BaseDAO {
 			}
 			$sql->addWhere($ref->getFromField()->data["basisColumnDbName"] . " IN (" . implode(", ", $ids) . ")");
 		}
+		//echo "<p>" . $sql->sql() . "</p>";
 		$data[$model->data['name']] = $this->_db->select($sql->sql());
 		
 		foreach ($model->childModels as $childModel) {
@@ -170,6 +182,14 @@ class ViewDAO extends BaseDAO {
 		}
 	}
 
+}
+
+/**
+ * @param Field $a
+ * @param Field $b
+ */
+function fieldSortOrder($a, $b) {
+	return $a->data["sortOrder"] - $b->data["sortOrder"];
 }
 
 ?>

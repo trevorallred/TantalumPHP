@@ -66,6 +66,7 @@ class View extends BaseTable {
 	public function getModel() {
 		if (!is_object($this->model)) {
 			$this->model = Cache::read("Model", $this->data["modelID"]);
+			$this->model->addView($this);
 		}
 		return $this->model;
 	}
@@ -75,10 +76,10 @@ class View extends BaseTable {
 	}
 	
 	/**
-	 * @return QueryBuilder
+	 * @return SelectSQL
 	 */
 	static public function sql() {
-		$sql = new QueryBuilder();
+		$sql = new SelectSQL();
 		$sql->fromTable = "tan_view v";
 		$sql->addField("v.id");
 		$sql->addField("v.viewType");
@@ -100,9 +101,16 @@ class Model extends BaseTable {
 	public $childModels = array();
 	public $references = array();
 	public $fields = array();
+	public $views = array();
 
 	public function __construct($data) {
 		parent::__construct($data);
+	}
+	
+	public function addView($view) {
+		if(!in_array($view, $this->views)) {
+			$views[] = $view;
+		}
 	}
 	
 	public function getPrimaryKey() {
@@ -132,9 +140,11 @@ class Model extends BaseTable {
 		echo "MODEL:<br>";
 		HtmlUtils::printTable($this->data);
 		echo "<ul>";
+		echo "REFERENCES:<br>";
 		foreach ($this->references as $o) {
 			$o->printOut();
 		}
+		echo "FIELDS:<br>";
 		foreach ($this->fields as $o) {
 			$o->printOut();
 		}
@@ -145,10 +155,10 @@ class Model extends BaseTable {
 	}
 
 	/**
-	 * @return QueryBuilder
+	 * @return SelectSQL
 	 */
 	static public function sql() {
-		$sql = new QueryBuilder();
+		$sql = new SelectSQL();
 		$sql->fromTable = "tan_model m";
 		$sql->addField("m.id");
 		$sql->addField("m.name");
@@ -174,24 +184,25 @@ class Field extends BaseTable {
 	}
 
 	public function printOut() {
-		echo "FIELD:<br>";
 		HtmlUtils::printTable($this->data);
 	}
 
 	/**
-	 * @return QueryBuilder
+	 * @return SelectSQL
 	 */
 	static public function sql() {
-		$sql = new QueryBuilder();
+		$sql = new SelectSQL();
 		$sql->fromTable = "tan_field f";
 		$sql->addField("f.*");
 
 		$sql->addLeftJoin("tan_column c ON c.id = f.basisColumnID");
 		$sql->addField("c.dbName basisColumnDbName");
+		$sql->addField("c.columnType basisColumnType");
 
 		$sql->addLeftJoin("tan_table t ON t.id = c.tableID");
 		$sql->addField("t.id basisTableID");
 		$sql->addField("t.dbName basisTableDbName");
+		$sql->addOrderBy("f.displayOrder");
 
 		return $sql;
 	}
@@ -210,24 +221,32 @@ class Reference extends BaseTable {
 	}
 
 	public function printOut() {
-		echo "REFERENCE:<br>";
 		HtmlUtils::printTable($this->data);
-		echo "<p>From:" . $this->getFromField() . " To:" . $this->getToField() . "</p>";
+		echo "<p>From:" . $this->getFromField()->getName() . " To:" . $this->getToField()->getName() . "</p>";
 	}
 	
 	public function getFromField() {
+		if (!isset($this->model)) {
+			return "Model isn't set";
+		}
 		return $this->model->findField($this->data["fromColumnID"]);
 	}
 
 	public function getToField() {
+		if (!isset($this->model)) {
+			return "Model isn't set";
+		}
+		if (!isset($this->model->parent)) {
+			return "Model isn't set";
+		}
 		return $this->model->parent->findField($this->data["toColumnID"]);
 	}
 
 	/**
-	 * @return QueryBuilder
+	 * @return SelectSQL
 	 */
 	static public function sql() {
-		$sql = new QueryBuilder();
+		$sql = new SelectSQL();
 		$sql->fromTable = "tan_reference r";
 		$sql->addField("r.id");
 		$sql->addField("r.parentID");
@@ -252,10 +271,10 @@ class JoinColumn extends BaseTable {
 	}
 
 	/**
-	 * @return QueryBuilder
+	 * @return SelectSQL
 	 */
 	static public function sql() {
-		$sql = new QueryBuilder();
+		$sql = new SelectSQL();
 		$sql->fromTable = "tan_join_column jc";
 		$sql->addField("r.*");
 
@@ -264,6 +283,20 @@ class JoinColumn extends BaseTable {
 		$sql->addJoin("tan_join j ON j.id = joinID");
 
 		return $sql;
+	}
+}
+
+class ColumnTypes {
+	static public function getValues() {
+		$values = array("UUID","String","Boolean","Integer","CreatedBy","UpdatedBy","CreationDate","UpdateDate","UpdateProcess");
+		return $values;
+	}
+	
+	static public function printValues() {
+		$values = ColumnTypes::getValues();
+		for ($i = 0; $i < count($values); $i++) {
+			echo ($i > 0 ? "," : "") . "['" . $values[$i] . "']";
+		}
 	}
 }
 
