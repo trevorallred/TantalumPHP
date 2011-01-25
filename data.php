@@ -10,12 +10,27 @@ try {
 		$model->printOut();
 		die();
 	}
+	
 	if ($action == 'save') {
-		print_r($_POST);
+		try {
+			$stores = HtmlUtils::jsonDecode($HTTP_RAW_POST_DATA);
+			
+			require_once("util/datasaver.php");
+			$saver = new DataSaver($db);
+			$result = $saver->save($model, $stores);
+			echo HtmlUtils::jsonEncode($result);
+		} catch (Exception $e) {
+			$obj = array();
+			$obj["success"] = false;
+			$obj["error_message"] = $e->getMessage();
+			$obj["error_code"] = $e->getCode();
+			echo HtmlUtils::jsonEncode($obj);
+		}
 		die();
 	}
-	$data = $dao->getData($model, null);
 
+	$data = $dao->getData($model, null);
+	
 	echo HtmlUtils::jsonEncode($data);
 	
 } catch (Exception $e) {
