@@ -2,15 +2,12 @@
 require_once("util/js_converter.php");
 
 $t = new JavaScriptArray();
-$t->addRaw("function () {
-}");
-$t->add("foo's");
-$t->add('bar "none"');
+$t->add("foo");
+$t->add('bar');
 
-echo $t->printOut();
+$s = $t;
+$s->addAll($t);
 
-$t = new JavaScriptObject();
-$t->addRaw("trevor", "function () {};");
-echo $t->printOut();
+echo $s->printOut();
 
 ?>
