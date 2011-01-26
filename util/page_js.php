@@ -139,32 +139,28 @@ function createStore($model) {
 		});
 	}
 	
-	function delete<?php echo $model->getName() ?>Store() {
-		var rows = item.grid.selModel.getSelections();
-		<?php echo $model->getName() ?>Store.remove(rows);
-	}
-
-	function insert<?php echo $model->getName() ?>Store() {
-		var store = <?php echo $model->getName() ?>Store;
-		var obj = store.recordType;
-		var o = new obj({ });
-		// o.data.DefineTableColumnDisplayOrder = 1;
-		// o.data.DefineTableColumnTableID = store.parentStore.data[store.parentStore.currentRow].DefineTableTableID;
-		// if(item.grid != null) {
-		//	item.grid.stopEditing();
-		// }
-		var size = store.data.length;
-		store.insert(size, o);
-		// if(item.grid != null) {
-		// 	item.grid.startEditing(size, 0);
-		// }
-	}
-	
 	<?php
 	
 	if ($model->parent == NULL) {
 		echo $model->getName() . "Store.load();\n";
 	}
+}
+
+/**
+ * @param View $view
+ * @param String $type Add or Delete
+ */
+function buildButtons($view, $type) {
+	$buttons = new JavaScriptArray();
+	$button = new JavaScriptObject();
+	$buttons->add($button);
+	$button->addRaw("handler", $type . $view->model->getName(). "Store");
+	$button->add("text", $type . " " . $view->data["label"]);
+	
+	foreach ($view->childViews as $child) {
+		$buttons->addAll(buildButtons($child, $type));
+	}
+	return $buttons;
 }
 
 function createView($view) {
@@ -183,6 +179,7 @@ function createView($view) {
  * @param View $view
  */
 function createGrid($view) {
+	$modelName = $view->getModel()->getName();
 	$config = new JavaScriptObject();
 	$config->add("flex", 1);
 	$config->add("stripeRows", TRUE);
@@ -190,13 +187,18 @@ function createGrid($view) {
 	$columnDefaults->add("xtype", "gridcolumn");
 	$columnDefaults->add("width", 120);
 	$config->add("defaults", $columnDefaults);
-	$config->addRaw("store", $view->getModel()->getName() . "Store");
+	$config->addRaw("store", $modelName . "Store");
 	$config->addRaw("refresh", "function() {this.store.reload();}");
 	
-	$smFunction = "page.currentStore = ".$view->getModel()->getName()."Store;
-		page.currentSelectionModel = sm; ";
+	$smFunction = "page.currentStore = ${modelName}Store;
+		${modelName}Store.currentRow = record;
+	";
 	foreach ($view->getModel()->childModels as $childModel) {
-		$smFunction .= $childModel->getName()."Store.filter('DefineTableColumnTableID', record.data.DefineTableTableID); ";
+		// TODO enhance this a bit more http://dev.sencha.com/deploy/dev/docs/source/Store.html#method-Ext.data.Store-filter
+		$reference = $childModel->getParentReference();
+		$from = $reference->getFromField();
+		$to = $reference->getToField();
+		$smFunction .= $childModel->getName()."Store.filter('".$reference->getFromField()->getName()."', record.data.".$reference->getToField()->getName()."); ";
 	};
 	$config->addRaw("sm", "new Ext.grid.RowSelectionModel( {
 		listeners : {
@@ -270,6 +272,33 @@ function createGrid($view) {
 	var <?php echo $view->getName() . "View" ?> = new Ext.grid.EditorGridPanel(
 		<?php echo $config->printOut(); ?>
 	);
+	
+	function Delete<?php echo $view->model->getName() ?>Store() {
+		var rows = <?php echo $view->getName() . "View" ?>.selModel.getSelections();
+		<?php echo $view->model->getName() ?>Store.remove(rows);
+	}
+
+	function Add<?php echo $view->model->getName() ?>Store() {
+		var store = <?php echo $view->model->getName() ?>Store;
+		var grid = <?php echo $view->getName() ?>View;
+		var obj = store.recordType;
+		var o = new obj({ });
+		<?php
+		foreach ($view->model->fields as $field) {
+			$field_default = $field->data["defaultFieldName"];
+			if (strlen($field_default) > 0) {
+				$view->model->findField($columnID);
+				echo "o.data.".$field->getName()." = store.parentStore.currentRow.data.".$field_default.";
+				";
+			}
+		}
+		?>
+		grid.stopEditing();
+		
+		var size = store.data.length;
+		store.insert(size, o);
+	 	grid.startEditing(size, 1);
+	}
 	<?php
 }
 
@@ -278,22 +307,86 @@ function createGrid($view) {
  */
 function createForm($view) {
 	$config = new JavaScriptObject();
+	$config->add("boundRecord", null);
 	$config->add("border", TRUE);
+	$config->add("padding", 5);
 	$config->add("title", $view->getName());
+	$modelName = $view->model->getName();
 	$items = new JavaScriptArray();
 	$config->add("items", $items);
 	// $items->add(new JavaScriptObject("fieldLabel", "Test"));
 	foreach ($view->getFields() as $field) {
 		$fieldJS = new JavaScriptObject();
 		$items->add($fieldJS);
-		$fieldJS->add("xtype", "textfield");
+		if ($field->data["editable"] == 0) {
+			$fieldJS->add("xtype", "displayfield");
+		} else {
+			$fieldJS->add("xtype", "textfield");
+			$fieldJS->addRaw("listeners", "{
+				change: function(field) {
+		        	${modelName}Store.currentRow.set(field.name, field.getValue());
+				}
+		    }");
+			$fieldJS->add("bubbleEvents", "['change']");
+		}
 		$fieldJS->add("fieldLabel", $field->data["label"]);
 		$fieldJS->add("name", $field->data["name"]);
 	}
 	?>
-	var <?php echo $view->getName() . "View" ?> = new Ext.FormPanel(
+	
+	var <?php echo $view->getName() ?>View = new Ext.FormPanel(
 		<?php echo $config->printOut() ?>
 	);
+	
+	<?php echo $view->model->getName() ?>Store.on('load', function() {
+		Position<?php echo $view->model->getName() ?>Store(0);
+	});
+	
+	function Position<?php echo $view->model->getName() ?>StoreChange(direction) {
+		var record = <?php echo $view->model->getName() ?>Store.currentRow;
+		if (record) {
+			var index = <?php echo $view->model->getName() ?>Store.indexOf(record);
+			Position<?php echo $view->model->getName() ?>Store(index + direction);
+		}
+	}
+	
+	function Position<?php echo $view->model->getName() ?>Store(index) {
+		var view = <?php echo $view->getName() ?>View;
+		var store = <?php echo $view->model->getName() ?>Store;
+		var record = store.data.items[index];
+		if (record) {
+			view.getForm().loadRecord(record);
+			store.currentRow = record;
+		}
+	}
+	
+	function Delete<?php echo $view->model->getName() ?>Store() {
+		var rows = <?php echo $view->getName() . "View" ?>.selModel.getSelections();
+		<?php echo $view->model->getName() ?>Store.remove(rows);
+	}
+
+	function Add<?php echo $view->model->getName() ?>Store() {
+		var store = <?php echo $view->model->getName() ?>Store;
+		var grid = <?php echo $view->getName() ?>View;
+		var obj = store.recordType;
+		var o = new obj({ });
+		<?php
+		foreach ($view->model->fields as $field) {
+			$field_default = $field->data["defaultFieldName"];
+			if (strlen($field_default) > 0) {
+				$view->model->findField($columnID);
+				echo "o.data.".$field->getName()." = store.parentStore.currentRow.data.".$field_default.";
+				";
+			}
+		}
+		?>
+		grid.stopEditing();
+		
+		var size = store.data.length;
+		store.insert(size, o);
+	 	grid.startEditing(size, 1);
+	}
+	
 	<?php
 }
 
@@ -317,27 +410,6 @@ function printView($view) {
 	var saveQueue;
 	var writer = new Ext.data.JsonWriter({});
 
-	Ext.util.Format.comboRenderer = function(combo){
-	    return function(value){
-	        var record = combo.findRecord(combo.valueField, value);
-	        return record ? record.get(combo.displayField) : combo.valueNotFoundText;
-	    }
-	}
-	
-	var combo = new Ext.form.ComboBox({
-	    lazyRender: true,
-	    mode: 'local',
-	    store: new Ext.data.ArrayStore({
-	        id: 0,
-	        fields: [
-	            'value'
-	        ],
-	        data: [<?php ColumnTypes::printValues() ?>]
-	    }),
-	    valueField: 'value',
-	    displayField: 'value'
-	});
-	
 	<?php
 	createStore($view->getModel());
 	createView($view);
@@ -345,7 +417,6 @@ function printView($view) {
 	
 	var page = new Ext.Container({
 		currentStore : null,
-		currentSelectionModel : null,
 		height : 300,
 		title : '<?php echo $view->data["label"] ?>',
 		layout : 'vbox',
@@ -372,38 +443,34 @@ function printView($view) {
     			},
     			text: 'Save'
     		},{
-    			iconCls : 'icon-minus',
-    			menu : {
-	                items: [{
-		    			handler: deleteDefineTableStore,
-	                    text: 'Delete Table'
-	                }, {
-		    			handler: deleteDefineTableColumnStore,
-	                    text: 'Delete Column'
-	                }]
-	            },
-    			tooltip: {text:'This is a an example QuickTip for a toolbar item', title:'Tip Title'},
-    			text: 'Delete'
-    		},{
     			iconCls : 'icon-plus',
+    			itemId : 'add',
     			menu : {
-	                items: [{
-		    			handler: insertDefineTableStore,
-	                    text: 'Add Table'
-	                }, {
-		    			handler: insertDefineTableColumnStore,
-	                    text: 'Add Column'
-	                }]
+    				items: <?php echo buildButtons($view, "Add")->printOut() ?>
 	            },
     			text: 'Add'
+    		},{
+    			iconCls : 'icon-minus',
+    			itemId : 'delete',
+    			menu : {
+    				items: <?php echo buildButtons($view, "Delete")->printOut() ?>
+	            },
+    			// tooltip: {text:'This is a an example QuickTip for a toolbar item', title:'Tip Title'},
+    			text: 'Delete'
     		},
     		'->',
     		{
     			iconCls : 'icon-arrow-left',
+    			handler: function(button, event) {
+    				Position<?php echo $view->model->getName() ?>StoreChange(-1);
+    			},
     			text: 'Previous'
     		},{
     			iconCls : 'icon-arrow-right',
     			iconAlign: 'right',
+    			handler: function(button, event) {
+    				Position<?php echo $view->model->getName() ?>StoreChange(1);
+    			},
     			text: 'Next'
     		}]
 		}
