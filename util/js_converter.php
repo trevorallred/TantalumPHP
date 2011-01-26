@@ -12,6 +12,19 @@ class JavaScriptArray {
 		$o = new JavaScriptValue($value, JavaScriptValue::RAW);
 		$this->_list[] = $o;
 	}
+	
+	public function addAll($values) {
+		if (is_a($values, "JavaScriptArray")) {
+			$values = $values->getList();
+		}
+		foreach ($values as $key=>$value) {
+			$this->_list[] = $value;
+		}
+	}
+	
+	public function getList() {
+		return $this->_list;
+	}
 
 	public function printOut() {
 		$out = "[";

@@ -33,7 +33,7 @@ class View extends BaseTable {
 	 * @var Model
 	 */
 	public $model;
-	
+
 	public function __construct($data) {
 		parent::__construct($data);
 	}
@@ -52,7 +52,7 @@ class View extends BaseTable {
 		}
 		echo "</ul>";
 	}
-	
+
 	public function getFields() {
 		$fields = array();
 		foreach ($this->model->fields as $field) {
@@ -62,7 +62,7 @@ class View extends BaseTable {
 		}
 		return $fields;
 	}
-	
+
 	public function getModel() {
 		if (!is_object($this->model)) {
 			$this->model = Cache::read("Model", $this->data["modelID"]);
@@ -70,11 +70,11 @@ class View extends BaseTable {
 		}
 		return $this->model;
 	}
-	
+
 	public function isRoot() {
 		return $this->parent == null;
 	}
-	
+
 	/**
 	 * @return SelectSQL
 	 */
@@ -106,18 +106,18 @@ class Model extends BaseTable {
 	public function __construct($data) {
 		parent::__construct($data);
 	}
-	
+
 	public function addView($view) {
 		if(!in_array($view, $this->views)) {
 			$views[] = $view;
 		}
 	}
-	
+
 	public function getPrimaryKey() {
 		// TODO make this accurate
 		return $this->fields[0];
 	}
-	
+
 	public function findField($columnID) {
 		foreach ($this->fields as $field) {
 			if ($field->data["basisColumnID"] == $columnID) {
@@ -126,16 +126,24 @@ class Model extends BaseTable {
 		}
 		return null;
 	}
-	
-	public function getParentReference() {
+
+	public function findReference($referenceID) {
+		if (strlen($referenceID) == 0) {
+			return null;
+		}
+		// TODO put the references in a map so it doesn't take so long to find
 		foreach ($this->references as $reference) {
-			if ($this->data["referenceID"] == $reference->getId()) {
+			if ($referenceID == $reference->getId()) {
 				return $reference;
 			}
 		}
 		return null;
 	}
 	
+	public function getParentReference() {
+		return $this->findReference($this->data["referenceID"]);
+	}
+
 	public function printOut() {
 		echo "MODEL:<br>";
 		HtmlUtils::printTable($this->data);
@@ -202,6 +210,10 @@ class Field extends BaseTable {
 		$sql->addLeftJoin("tan_table t ON t.id = c.tableID");
 		$sql->addField("t.id basisTableID");
 		$sql->addField("t.dbName basisTableDbName");
+
+		$sql->addLeftJoin("tan_field defaultField ON f.defaultFieldID = defaultField.id");
+		$sql->addField("defaultField.name defaultFieldName");
+
 		$sql->addOrderBy("f.displayOrder");
 
 		return $sql;
@@ -210,6 +222,10 @@ class Field extends BaseTable {
 }
 
 class Reference extends BaseTable {
+	private $_fromField = null;
+	private $_toField = null;
+	public $order = 1;
+	
 	public $joinColumns = array();
 	/**
 	 * @var Model
@@ -222,24 +238,36 @@ class Reference extends BaseTable {
 
 	public function printOut() {
 		HtmlUtils::printTable($this->data);
-		echo "<p>From:" . $this->getFromField()->getName() . " To:" . $this->getToField()->getName() . "</p>";
-	}
-	
-	public function getFromField() {
-		if (!isset($this->model)) {
-			return "Model isn't set";
+		if ($this->model->parent != null) {
+			echo "<p>From:" . $this->getFromField()->getName();
+			echo " To:" . $this->getToField()->getName();
+			echo "</p>";
 		}
-		return $this->model->findField($this->data["fromColumnID"]);
+	}
+
+	public function getFromField() {
+		if ($this->_fromField == NULL) {
+			if (!is_a($this->model, "Model")) {
+				echo "Model isn't set";
+			}
+			$this->_fromField = $this->model->findField($this->data["fromColumnID"]);
+		}
+		return $this->_fromField;
 	}
 
 	public function getToField() {
-		if (!isset($this->model)) {
-			return "Model isn't set";
+		if ($this->_toField == NULL) {
+			if (!is_a($this->model, "Model")) {
+				echo "Model isn't set";
+				return null;
+			}
+			if (!is_a($this->model->parent, "Model")) {
+				echo "Model isn't set";
+				return null;
+			}
+			$this->_toField = $this->model->parent->findField($this->data["toColumnID"]);
 		}
-		if (!isset($this->model->parent)) {
-			return "Model isn't set";
-		}
-		return $this->model->parent->findField($this->data["toColumnID"]);
+		return $this->_toField;
 	}
 
 	/**
@@ -255,10 +283,20 @@ class Reference extends BaseTable {
 		$sql->addJoin("tan_join j ON j.id = r.joinID");
 		$sql->addField("j.joinType");
 
+		$sql->addJoin("tan_table t ON t.id = j.toTableID");
+		$sql->addField("t.id joinToTableID");
+		$sql->addField("t.dbName joinToTableDbName");
+
 		$sql->addJoin("tan_join_column jc ON j.id = jc.joinID");
 		$sql->addField("jc.fromColumnID");
 		$sql->addField("jc.fromText");
 		$sql->addField("jc.toColumnID");
+
+		$sql->addLeftJoin("tan_column jfc ON jfc.id = jc.fromColumnID");
+		$sql->addField("jfc.dbName fromColumnDbName");
+		
+		$sql->addJoin("tan_column jtc ON jtc.id = jc.toColumnID");
+		$sql->addField("jtc.dbName toColumnDbName");
 		
 		return $sql;
 	}
@@ -291,7 +329,7 @@ class ColumnTypes {
 		$values = array("UUID","String","Boolean","Integer","CreatedBy","UpdatedBy","CreationDate","UpdateDate","UpdateProcess");
 		return $values;
 	}
-	
+
 	static public function printValues() {
 		$values = ColumnTypes::getValues();
 		for ($i = 0; $i < count($values); $i++) {

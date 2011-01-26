@@ -53,10 +53,13 @@ class ModelDAO extends BaseDAO {
 		$sql = Reference::sql();
 		$sql->addWhere("r.modelID = '$id'");
 		$rows = $this->_db->select($sql->sql());
+		$referenceOrder = 1;
 		foreach ($rows as $row) {
 			$o2 = new Reference($row);
 			$o2->model = $model;
+			$o2->order = $referenceOrder;
 			$model->references[] = $o2;
+			$referenceOrder++;
 		}
 		
 		// Get the child models
@@ -80,9 +83,22 @@ class ModelDAO extends BaseDAO {
 		//echo $model->getName() . "<br>";
 		$sql = new SelectSQL();
 		$sql->fromTable = $model->data['basisTableDbName'] . " t0";
+		
+		foreach ($model->references as $reference) {
+			$join = $reference->data['joinToTableDbName'] . " t" . $reference->order ." 
+				ON t0." . $reference->data['fromColumnDbName'] . " = t" . $reference->order . "." . $reference->data['toColumnDbName'];
+			$sql->addLeftJoin($join);
+		}
+		
 		$sorting = array();
 		foreach ($model->fields as $column) {
-			$sql->addField("t0." . $column->data['basisColumnDbName'] . " AS " . $column->data['name']);
+			$t = 0;
+			if(strlen($column->data["referenceID"]) > 0) {
+				$reference = $model->findReference($column->data["referenceID"]);
+				$t = $reference->order;
+			}
+			
+			$sql->addField("t${t}." . $column->data['basisColumnDbName'] . " AS " . $column->data['name']);
 			if ($column->data["sortOrder"] > 0) {
 				$sorting[] = $column;
 			}
@@ -105,7 +121,7 @@ class ModelDAO extends BaseDAO {
 			}
 			$sql->addWhere($ref->getFromField()->data["basisColumnDbName"] . " IN (" . implode(", ", $ids) . ")");
 		}
-		//echo "<p>" . $sql->sql() . "</p>";
+		// echo "<p>" . $sql->sql() . "</p>";
 		$data[$model->data['name']] = $this->_db->select($sql->sql());
 		
 		foreach ($model->childModels as $childModel) {
