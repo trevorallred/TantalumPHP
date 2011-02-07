@@ -1,7 +1,6 @@
 <?php
 
 require_once 'sql.php';
-require_once 'db.php';
 require_once 'common.php';
 
 abstract class BaseTable {
@@ -63,6 +62,16 @@ class View extends BaseTable {
 		return $fields;
 	}
 
+	public function getSearchableFields() {
+		$fields = array();
+		foreach ($this->getFields() as $field) {
+			if ($field->data["searchable"]) {
+				$fields[] = $field;
+			}
+		}
+		return $fields;
+	}
+	
 	public function getModel() {
 		if (!is_object($this->model)) {
 			$this->model = Cache::read("Model", $this->data["modelID"]);
@@ -176,6 +185,7 @@ class Model extends BaseTable {
 		$sql->addField("m.allowDelete");
 		$sql->addField("m.allowEdit");
 		$sql->addField("m.resultsPerPage");
+		$sql->addField("m.condition");
 
 		$sql->addLeftJoin("tan_table t ON m.basisTableID = t.id");
 		$sql->addField("t.id basisTableID");

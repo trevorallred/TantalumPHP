@@ -18,7 +18,9 @@ function createStore($model) {
 	$config->add("pruneModifiedRecords", true);
 	$config->add("writer", "writer", JavaScriptValue::RAW);
 	$config->add("root", $model->getName());
-	$config->add("idProperty", $model->getPrimaryKey()->getName());
+	if ($model->getPrimaryKey()) {
+		$config->add("idProperty", $model->getPrimaryKey()->getName());
+	}
 	
 	$sortField = null;
 	$lowestOrder = 0;
@@ -76,7 +78,7 @@ function createStore($model) {
 				?>
 				<?php echo $childModel->getName() ?>Store.loadData(<?php echo $model->getName() ?>Store.reader.jsonData);
 				if (<?php echo $model->getName() ?>Store.getCount() > 0) {
-					<?php echo $childModel->getName() ?>Store.filter('DefineTableColumnTableID', <?php echo $model->getName() ?>Store.getAt(0).data.DefineTableTableID);
+					<?php echo $childModel->getName()."Store.filter('".$childModel->getParentReference()->getFromField()->getName()."', ".$model->getName()."Store.getAt(0).data.".$childModel->getParentReference()->getToField()->getName()."); "; ?>
 				}
 				<?php
 			}
@@ -413,6 +415,46 @@ function printView($view) {
 	<?php
 	createStore($view->getModel());
 	createView($view);
+	$searchFields = $view->getSearchableFields();
+	$showSearch = count($searchFields) > 0;
+	if ($showSearch) {
+		?>
+		var searchForm = new Ext.form.FormPanel({
+			collapsible: true,
+			padding: 5,
+			title: "Search",
+			defaultType: 'textfield',
+			items: [
+			<?php
+			foreach ($searchFields as $field) {
+				$fieldData = new JavaScriptObject();
+				$fieldData->add("id", $field->getName());
+				$fieldData->add("name", $field->getName());
+				$fieldData->add("fieldLabel", $field->data["label"]);
+				echo $fieldData->printOut() . ", ";
+			}
+			?>
+			{
+				xtype: 'button',
+				handler: function(button, event) {
+					var condition = "";
+					<?php
+					foreach ($searchFields as $field) { ?>
+						var searchValue = searchForm.getComponent("<?php echo $field->getName() ?>").getValue();
+						if (searchValue.length > 0) {
+							if (condition != "") condition += " AND ";
+							condition += "<?php echo $field->getName() ?> LIKE '%" + searchValue + "%'";
+						}
+						<?php
+					}
+					?>
+					<?php echo $view->getModel()->getName() ?>Store.load({"params" : {"condition" : condition}});
+				},
+				text: 'Search'
+			}]
+		});
+		<?php
+	}
 	?>
 	
 	var page = new Ext.Container({
@@ -426,9 +468,15 @@ function printView($view) {
 		items: [{
         	xtype: 'toolbar',
     		items: [{
+    		<?php if ($showSearch) { ?>
     			iconCls : 'icon-magnifier',
+    			
+    			handler: function(button, event) {
+    				searchForm.expand(true);
+    			},
     			text: 'Search'
     		},{
+    		<?php } ?>
     			iconCls : 'icon-refresh',
     			handler: function(b, e) {
 					<?php echo $view->getModel()->getName() ?>Store.reload();
@@ -474,7 +522,12 @@ function printView($view) {
     			text: 'Next'
     		}]
 		}
-		<?php printView($view) ?>
+		<?php
+		if ($showSearch) {
+			echo ",searchForm";
+		}
+		printView($view)
+		?>
 		]
 	});
 	

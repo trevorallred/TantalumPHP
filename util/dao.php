@@ -2,6 +2,7 @@
 
 require_once 'entities.php';
 require_once 'sql.php';
+require_once 'tql.php';
 require_once 'db.php';
 require_once 'common.php';
 require_once 'cache.php';
@@ -79,17 +80,19 @@ class ModelDAO extends BaseDAO {
 	 * @param Model $model
 	 * @param unknown_type $parents
 	 */
-	public function getData($model, $parents) {
+	public function getData($model, $parents, $condition) {
 		//echo $model->getName() . "<br>";
 		$sql = new SelectSQL();
 		$sql->fromTable = $model->data['basisTableDbName'] . " t0";
-		
+
+		// Add the JOINs
 		foreach ($model->references as $reference) {
 			$join = $reference->data['joinToTableDbName'] . " t" . $reference->order ." 
 				ON t0." . $reference->data['fromColumnDbName'] . " = t" . $reference->order . "." . $reference->data['toColumnDbName'];
 			$sql->addLeftJoin($join);
 		}
 		
+		// Add the COLUMNs
 		$sorting = array();
 		foreach ($model->fields as $column) {
 			$t = 0;
@@ -103,6 +106,8 @@ class ModelDAO extends BaseDAO {
 				$sorting[] = $column;
 			}
 		}
+		
+		// Add ORDER BYs
 		if (count($sorting) > 0) {
 			usort($sorting, "fieldSortOrder");
 			foreach ($sorting as $column) {
@@ -110,7 +115,14 @@ class ModelDAO extends BaseDAO {
 			}
 			//HtmlUtils::printPre($sorting);
 		}
-		
+				
+		// Add Where Clause
+		if ($condition > '') {
+			$sql->addWhere(TQL::parse($condition, $model));
+		}
+		if ($model->data['condition'] > '') {
+			$sql->addWhere(TQL::parse($model->data['condition'], $model));
+		}
 		if ($parents != null && count($parents) > 0) {
 			$ref = $model->getParentReference();
 			$toField = $ref->getToField();
@@ -121,6 +133,8 @@ class ModelDAO extends BaseDAO {
 			}
 			$sql->addWhere($ref->getFromField()->data["basisColumnDbName"] . " IN (" . implode(", ", $ids) . ")");
 		}
+		
+		// Query Data
 		// echo "<p>" . $sql->sql() . "</p>";
 		$data[$model->data['name']] = $this->_db->select($sql->sql());
 		

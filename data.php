@@ -29,7 +29,7 @@ try {
 		die();
 	}
 
-	$data = $dao->getData($model, null);
+	$data = $dao->getData($model, null, $_REQUEST["condition"]);
 	
 	echo HtmlUtils::jsonEncode($data);
 	
