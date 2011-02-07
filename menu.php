@@ -46,28 +46,16 @@ Tantalum.Menu = Ext.extend(Ext.Panel, {
 		url : 'page.php?id=e88068d5-9f57-11df-936f-e37ecc873ea2'
 	}, {
 		xtype : 'button',
+		text : 'List Pages',
+		handler : onMenuClick,
+		iconCls : 'icon-form-edit',
+		url : 'page.php?id=e8806c5f-9f57-11df-936f-e37ecc873ea2'
+	}, {
+		xtype : 'button',
 		text : 'List Models',
 		handler : onMenuClick,
 		iconCls : 'icon-form-edit',
 		url : 'page.php?id=e8806a9d-9f57-11df-936f-e37ecc873ea2'
-	}, {
-		xtype : 'button',
-		text : 'DefineTables3',
-		handler : onMenuClick,
-		iconCls : 'icon-form-edit',
-		url : 'js/Tantalum.DefineTable3.js'
-	}, {
-		xtype : 'button',
-		text : 'DefineTables2',
-		handler : onMenuClick,
-		iconCls : 'icon-form-edit',
-		url : 'js/Tantalum.DefineTable2.js'
-	}, {
-		xtype : 'button',
-		text : 'ManageTables',
-		handler : onMenuClick,
-		iconCls : 'icon-form-edit',
-		url : 'js/Tantalum.ManageTables.js'
 	} ],
 	initComponent : function() {
 		Tantalum.Menu.superclass.initComponent.call(this);
