@@ -51,14 +51,14 @@ class JavaScriptValue {
 	public function __construct($value, $type = NULL) {
 		$this->_value = $value;
 		if ($type == NULL) {
+			if(is_numeric($value)) {
+				$type = JavaScriptValue::NUMBER;
+			}
 			if(is_null($value)) {
 				$type = JavaScriptValue::RAW;
 			}
 			if(is_string($value)) {
 				$type = JavaScriptValue::STRING;
-			}
-			if(is_numeric($value)) {
-				$type = JavaScriptValue::NUMBER;
 			}
 			if(is_bool($value)) {
 				$type = JavaScriptValue::BOOLEAN;
@@ -75,8 +75,12 @@ class JavaScriptValue {
 		if($this->_type == JavaScriptValue::BOOLEAN) {
 			return $this->_value ? "true" : "false";
 		}
-		if($this->_value == NULL)
-		return "null";
+		if($this->_type == JavaScriptValue::NUMBER) {
+			return $this->_value;
+		}
+		if($this->_value == NULL) {
+			return "null";
+		}
 		if(is_object($this->_value)) {
 			return $this->_value->printOut();
 		}
