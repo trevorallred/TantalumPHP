@@ -73,6 +73,8 @@ class View extends BaseTable {
 	}
 	
 	public function getModel() {
+		if (empty($this->data["modelID"]))
+			return null;
 		if (!is_object($this->model)) {
 			$this->model = Cache::read("Model", $this->data["modelID"]);
 			$this->model->addView($this);
