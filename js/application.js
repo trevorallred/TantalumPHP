@@ -1,5 +1,5 @@
 Ext.ns('Tantalum');
-Ext.BLANK_IMAGE_URL = 'ext/resources/images/default/s.gif';
+Ext.BLANK_IMAGE_URL = 'ext-3.3.1/resources/images/default/s.gif';
 
 BodyPanel = Ext.extend(Ext.Viewport, {
 	layout : 'border',
