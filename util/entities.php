@@ -158,6 +158,9 @@ class Model extends BaseTable {
 	public function printOut() {
 		echo "MODEL:<br>";
 		HtmlUtils::printTable($this->data);
+		if ($this->data["parentID"] > '' && $this->data["referenceID"] == null) {
+			echo "<div class='error'>Missing Model ReferenceID</div>";
+		}
 		echo "<ul>";
 		echo "REFERENCES:<br>";
 		foreach ($this->references as $o) {

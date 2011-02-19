@@ -74,12 +74,14 @@ function createStore($model) {
 		<?php echo $model->getName() ?>Store.on('load', function(store) {
 			<?php
 			foreach ($model->childModels as $childModel) {
-				?>
-				<?php echo $childModel->getName() ?>Store.loadData(<?php echo $model->getName() ?>Store.reader.jsonData);
-				if (<?php echo $model->getName() ?>Store.getCount() > 0) {
-					<?php echo $childModel->getName()."Store.filter('".$childModel->getParentReference()->getFromField()->getName()."', ".$model->getName()."Store.getAt(0).data.".$childModel->getParentReference()->getToField()->getName()."); "; ?>
+				if ($childModel->getParentReference() != null) {
+					?>
+					<?php echo $childModel->getName() ?>Store.loadData(<?php echo $model->getName() ?>Store.reader.jsonData);
+					if (<?php echo $model->getName() ?>Store.getCount() > 0) {
+						<?php echo $childModel->getName()."Store.filter('".$childModel->getParentReference()->getFromField()->getName()."', ".$model->getName()."Store.getAt(0).data.".$childModel->getParentReference()->getToField()->getName()."); "; ?>
+					}
+					<?php
 				}
-				<?php
 			}
 		?>
 		});

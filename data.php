@@ -7,7 +7,9 @@ try {
 	$model = $dao->build($_GET['id']);
 	$action = $_GET['action'];
 	if ($action == 'debug') {
+		include 'util/debug_header.php';
 		$model->printOut();
+		echo "</body></html>";
 		die();
 	}
 	

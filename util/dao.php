@@ -102,6 +102,7 @@ class ModelDAO extends BaseDAO {
 			}
 			
 			$sql->addField("t${t}." . $column->data['basisColumnDbName'] . " AS " . $column->data['name']);
+			
 			if ($column->data["sortOrder"] > 0) {
 				$sorting[] = $column;
 			}
@@ -125,13 +126,18 @@ class ModelDAO extends BaseDAO {
 		}
 		if ($parents != null && count($parents) > 0) {
 			$ref = $model->getParentReference();
-			$toField = $ref->getToField();
-			
-			$ids = array();
-			foreach ($parents as $row) {
-				$ids[] = "'".$row[$toField->getName()]."'";
+			if ($ref == null) {
+				// Until the user defines a reference, don't try to return anything yet
+				$sql->addWhere("1 = 0");
+			} else {
+				$toField = $ref->getToField();
+				
+				$ids = array();
+				foreach ($parents as $row) {
+					$ids[] = "'".$row[$toField->getName()]."'";
+				}
+				$sql->addWhere($ref->getFromField()->data["basisColumnDbName"] . " IN (" . implode(", ", $ids) . ")");
 			}
-			$sql->addWhere($ref->getFromField()->data["basisColumnDbName"] . " IN (" . implode(", ", $ids) . ")");
 		}
 		
 		// Query Data

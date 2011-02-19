@@ -19,6 +19,9 @@ class DataSaver extends BaseDAO {
 
 		$modelName = $model->getName();
 		$primaryKeyField = $model->getPrimaryKey();
+		if ($primaryKeyField == null) {
+			return;
+		}
 		$primaryKeyFieldName = $primaryKeyField->getName();
 
 		$store = $stores->$modelName;
