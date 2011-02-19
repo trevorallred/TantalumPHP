@@ -28,12 +28,6 @@ Tantalum.Menu = Ext.extend(Ext.Panel, {
 		xtype : 'tbseparator'
 	}, {
 		xtype : 'button',
-		text : 'Test',
-		handler : onMenuClick,
-		iconCls : 'icon-form-edit',
-		url : 'temp/test2.js'
-	}, {
-		xtype : 'button',
 		text : 'List Tables',
 		handler : onMenuClick,
 		iconCls : 'icon-form-edit',

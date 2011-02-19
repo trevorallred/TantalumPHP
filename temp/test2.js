@@ -1,291 +1,158 @@
 (function() {
-	var saveQueue = new Object();
-var writer = new Ext.data.JsonWriter({});
-Tantalum.DefineTableStore = Ext.extend(Ext.data.JsonStore, {
-	constructor : function(cfg) {
-		cfg = cfg || {};
-		Tantalum.DefineTableStore.superclass.constructor.call(this, Ext.apply( {
-			url : 'data.php?id=095e0978-9f58-11df-936f-e37ecc873ea2', 				autoDestroy : true,
-			batch : true,
-			autoSave : false,
-			pruneModifiedRecords : true,
-			writer : writer,
-			root : 'DefineTable',
-			idProperty : 'DefineTableTableID',
-			fields : [ { name: 'DefineTableTableID'}, { name: 'DefineTableName'}, { name: 'DefineTableDatabaseName'} ]
-		}, cfg));
-	}
-});
-var DefineTableStore = new Tantalum.DefineTableStore();
-DefineTableStore.addListener('beforewrite', function(store, action, rs, options) {
-	saveQueue[action] = [];
-	if (Ext.isArray(rs)) {
-		saveQueue[action] = rs;
-	} else {
-		saveQueue[action].push(rs);
-	}
-	return false;
-});
-		DefineTableStore.on('load', function(store) {
-						DefineTableColumnStore.loadData(DefineTableStore.reader.jsonData);
-			if (DefineTableStore.getCount() > 0) {
-				DefineTableColumnStore.filter('DefineTableColumnTableID', DefineTableStore.getAt(0).data.DefineTableTableID);
-			}
-					});
-	
-		var saveQueue = new Object();
-var writer = new Ext.data.JsonWriter({});
-Tantalum.DefineTableColumnStore = Ext.extend(Ext.data.JsonStore, {
-	constructor : function(cfg) {
-		cfg = cfg || {};
-		Tantalum.DefineTableColumnStore.superclass.constructor.call(this, Ext.apply( {
-							autoDestroy : true,
-			batch : true,
-			autoSave : false,
-			pruneModifiedRecords : true,
-			writer : writer,
-			root : 'DefineTableColumn',
-			idProperty : 'DefineTableColumnName',
-			fields : [ { name: 'DefineTableColumnName'}, { name: 'DefineTableColumnID'}, { name: 'DefineTableColumnRequired'}, { name: 'DefineTableColumnDisplayOrder'}, { name: 'DefineTableColumnDbName'}, { name: 'DefineTableColumnTableID'}, { name: 'ColumnColumnType'} ]
-		}, cfg));
-	}
-});
-var DefineTableColumnStore = new Tantalum.DefineTableColumnStore();
-DefineTableColumnStore.addListener('beforewrite', function(store, action, rs, options) {
-	saveQueue[action] = [];
-	if (Ext.isArray(rs)) {
-		saveQueue[action] = rs;
-	} else {
-		saveQueue[action].push(rs);
-	}
-	return false;
-});
-	DefineTableStore.load();
+	// NOTE: This is an example showing simple state management. During development,
+    // it is generally best to disable state management as dynamically-generated ids
+    // can change across page loads, leading to unpredictable results.  The developer
+    // should ensure that stable state ids are set for stateful components in real apps.    
+    Ext.state.Manager.setProvider(new Ext.state.CookieProvider());
 
-var page = new Ext.Container({
-	currentStore : null,
-	height : 300,
-	title : 'Define Table',
-	layout:'vbox',
-	layoutConfig: {
-	    align : 'stretch'
-	},
-	items: [{
-    	xtype: 'toolbar',
-		items: [{
-			iconCls : 'icon-magnifier',
-			text: 'Search'
-		},{
-			iconCls : 'icon-refresh',
-			handler: function(b, e) {
-				DefineTableStore.reload();
-			},
-			text: 'Refresh'
-		},{
-			iconCls : 'icon-disk',
-			handler: function(button, event) {
-				var savejson = new Object();
-				var savejsonModel = new Object();
-				saveQueue = new Object();
-				DefineTableStore.save();
-				for ( var action in saveQueue) {
-					if (Ext.isDefined(action)) {
-						savejsonModel[action] = [];
-						for ( var i = 0; i < saveQueue[action].length; i++) {
-							savejsonModel[action].push(saveQueue[action][i].data);
-						}
-					}
-				}
-				savejson['DefineTable'] = savejsonModel;
-				
-				Ext.Ajax.request( {
-					url : 'data.php',
-					method: 'POST',
-					success : function(response, opts) {
-						var obj = Ext.decode(response.responseText);
-	
-						if (obj.success === false) {
-							alert("Failed to save data");
-							return;
-						}
-						for ( var action in saveQueue) {
-							if (Ext.isDefined(action)) {
-								this['on' + Ext.util.Format.capitalize(action) + 'Records'](obj.success, saveQueue[action],
-										obj.DefineTable[action]);
-							}
-						}
-					},
-					failure : function(response, opts) {
-						alert("Failed to save data with status code " + response.status);
-					},
-					params : {
-						action : 'save',
-						id : '095e0978-9f58-11df-936f-e37ecc873ea2'
-					},
-					scope : DefineTableStore,
-					jsonData : Ext.util.JSON.encode(savejson)
-				});
-			},
-			text: 'Save'
-		},{
-			iconCls : 'icon-minus',
-			handler: function(b, e) {
-				if (this.currentStore === null)
-					return;
-				DefineTableStore.removeAt(0);
-			},
-			text: 'Delete'
-		},{
-			iconCls : 'icon-plus',
-			handler: function(b, e) {
-				if (this.currentStore === null)
-					return;
-				DefineTableStore.reload();
-			},
-			text: 'Add'
-		},
-		'->', // same as {xtype: 'tbfill'}, // Ext.Toolbar.Fill
-		{
-			iconCls : 'icon-arrow-left',
-			text: 'Previous'
-		},{
-			iconCls : 'icon-arrow-right',
-			iconAlign: 'right',
-			text: 'Next'
-		}]
-	}
-	, {
-		xtype: 'editorgrid',
-		flex:1,
-		defaults : {
-			sortable : true
-		},
-		stripeRows : true,
-		sm : new Ext.grid.RowSelectionModel( {
-			listeners : {
-				rowselect : {
-					fn : function(sm, index, record) {
-						page.currentStore = DefineTableStore;
-														DefineTableColumnStore.filter('DefineTableColumnTableID', record.data.DefineTableTableID);
-													}
-				}
-			}
-		}),
-		viewConfig : {
-		},
-		columns : [ {
-					header: 'Table name',
-					xtype : 'gridcolumn',
-					width : 150,
-					editable : true,
-					sortable : true,
-					dataIndex : 'DefineTableName',
-					editor : {
-						xtype : 'textfield'
-					}
-				}, {
-					header: 'DB name',
-					xtype : 'gridcolumn',
-					width : 150,
-					editable : true,
-					sortable : true,
-					dataIndex : 'DefineTableDatabaseName',
-					editor : {
-						xtype : 'textfield'
-					}
-				} ],
-		refresh : function() {
-			this.store.reload();
-		},
-		store : DefineTableStore
-	}
-			, {
-		xtype: 'editorgrid',
-		flex:2,
-		defaults : {
-			sortable : true
-		},
-		stripeRows : true,
-		sm : new Ext.grid.RowSelectionModel( {
-			listeners : {
-				rowselect : {
-					fn : function(sm, index, record) {
-						page.currentStore = DefineTableColumnStore;
-												}
-				}
-			}
-		}),
-		viewConfig : {
-		},
-		columns : [ {
-					header: 'Name',
-					xtype : 'gridcolumn',
-					width : 150,
-					editable : true,
-					sortable : true,
-					dataIndex : 'DefineTableColumnName',
-					editor : {
-						xtype : 'textfield'
-					}
-				}, {
-					header: 'Required',
-					xtype : 'gridcolumn',
-					width : 150,
-					editable : true,
-					sortable : true,
-					dataIndex : 'DefineTableColumnRequired',
-					editor : {
-						xtype : 'textfield'
-					}
-				}, {
-					header: 'Order',
-					xtype : 'gridcolumn',
-					width : 150,
-					editable : true,
-					sortable : true,
-					dataIndex : 'DefineTableColumnDisplayOrder',
-					editor : {
-						xtype : 'textfield'
-					}
-				}, {
-					header: 'Database',
-					xtype : 'gridcolumn',
-					width : 150,
-					editable : true,
-					sortable : true,
-					dataIndex : 'DefineTableColumnDbName',
-					editor : {
-						xtype : 'textfield'
-					}
-				}, {
-					header: 'TableID',
-					xtype : 'gridcolumn',
-					width : 150,
-					editable : true,
-					sortable : true,
-					dataIndex : 'DefineTableColumnTableID',
-					editor : {
-						xtype : 'textfield'
-					}
-				}, {
-					header: 'Type',
-					xtype : 'gridcolumn',
-					width : 150,
-					editable : true,
-					sortable : true,
-					dataIndex : 'ColumnColumnType',
-					editor : {
-						xtype : 'textfield'
-					}
-				} ],
-		refresh : function() {
-			this.store.reload();
-		},
-		store : DefineTableColumnStore
-	}
-			]
-});
+    // sample static data for the store
+    var myData = [
+        ['3m Co',                               71.72, 0.02,  0.03,  '9/1 12:00am'],
+        ['Alcoa Inc',                           29.01, 0.42,  1.47,  '9/1 12:00am'],
+        ['Altria Group Inc',                    83.81, 0.28,  0.34,  '9/1 12:00am'],
+        ['American Express Company',            52.55, 0.01,  0.02,  '9/1 12:00am'],
+        ['American International Group, Inc.',  64.13, 0.31,  0.49,  '9/1 12:00am'],
+        ['AT&T Inc.',                           31.61, -0.48, -1.54, '9/1 12:00am'],
+        ['Boeing Co.',                          75.43, 0.53,  0.71,  '9/1 12:00am'],
+        ['Caterpillar Inc.',                    67.27, 0.92,  1.39,  '9/1 12:00am'],
+        ['Citigroup, Inc.',                     49.37, 0.02,  0.04,  '9/1 12:00am'],
+        ['E.I. du Pont de Nemours and Company', 40.48, 0.51,  1.28,  '9/1 12:00am'],
+        ['Exxon Mobil Corp',                    68.1,  -0.43, -0.64, '9/1 12:00am'],
+        ['General Electric Company',            34.14, -0.08, -0.23, '9/1 12:00am'],
+        ['General Motors Corporation',          30.27, 1.09,  3.74,  '9/1 12:00am'],
+        ['Hewlett-Packard Co.',                 36.53, -0.03, -0.08, '9/1 12:00am'],
+        ['Honeywell Intl Inc',                  38.77, 0.05,  0.13,  '9/1 12:00am'],
+        ['Intel Corporation',                   19.88, 0.31,  1.58,  '9/1 12:00am'],
+        ['International Business Machines',     81.41, 0.44,  0.54,  '9/1 12:00am'],
+        ['Johnson & Johnson',                   64.72, 0.06,  0.09,  '9/1 12:00am'],
+        ['JP Morgan & Chase & Co',              45.73, 0.07,  0.15,  '9/1 12:00am'],
+        ['McDonald\'s Corporation',             36.76, 0.86,  2.40,  '9/1 12:00am'],
+        ['Merck & Co., Inc.',                   40.96, 0.41,  1.01,  '9/1 12:00am'],
+        ['Microsoft Corporation',               25.84, 0.14,  0.54,  '9/1 12:00am'],
+        ['Pfizer Inc',                          27.96, 0.4,   1.45,  '9/1 12:00am'],
+        ['The Coca-Cola Company',               45.07, 0.26,  0.58,  '9/1 12:00am'],
+        ['The Home Depot, Inc.',                34.64, 0.35,  1.02,  '9/1 12:00am'],
+        ['The Procter & Gamble Company',        61.91, 0.01,  0.02,  '9/1 12:00am'],
+        ['United Technologies Corporation',     63.26, 0.55,  0.88,  '9/1 12:00am'],
+        ['Verizon Communications',              35.57, 0.39,  1.11,  '9/1 12:00am'],            
+        ['Wal-Mart Stores, Inc.',               45.45, 0.73,  1.63,  '9/1 12:00am']
+    ];
 
-page.currentStore = DefineTableStore;
-return page;
+    /**
+     * Custom function used for column renderer
+     * @param {Object} val
+     */
+    function change(val) {
+        if (val > 0) {
+            return '<span style="color:green;">' + val + '</span>';
+        } else if (val < 0) {
+            return '<span style="color:red;">' + val + '</span>';
+        }
+        return val;
+    }
+
+    /**
+     * Custom function used for column renderer
+     * @param {Object} val
+     */
+    function pctChange(val) {
+        if (val > 0) {
+            return '<span style="color:green;">' + val + '%</span>';
+        } else if (val < 0) {
+            return '<span style="color:red;">' + val + '%</span>';
+        }
+        return val;
+    }
+
+    // create the data store
+    var store = new Ext.data.ArrayStore({
+        fields: [
+           {name: 'company'},
+           {name: 'price',      type: 'float'},
+           {name: 'change',     type: 'float'},
+           {name: 'pctChange',  type: 'float'},
+           {name: 'lastChange', type: 'date', dateFormat: 'n/j h:ia'}
+        ]
+    });
+
+    // manually load local data
+    store.loadData(myData);
+
+    // create the Grid
+    var page = new Ext.grid.GridPanel({
+        store: store,
+        columns: [
+            {
+                id       :'company',
+                header   : 'Company', 
+                width    : 160, 
+                sortable : true, 
+                dataIndex: 'company'
+            },
+            {
+                header   : 'Price', 
+                width    : 75, 
+                sortable : true, 
+                renderer : 'usMoney', 
+                dataIndex: 'price'
+            },
+            {
+                header   : 'Change', 
+                width    : 75, 
+                sortable : true, 
+                renderer : change, 
+                dataIndex: 'change'
+            },
+            {
+                header   : '% Change', 
+                width    : 75, 
+                sortable : true, 
+                renderer : pctChange, 
+                dataIndex: 'pctChange'
+            },
+            {
+                header   : 'Last Updated', 
+                width    : 85, 
+                sortable : true, 
+                renderer : Ext.util.Format.dateRenderer('m/d/Y'), 
+                dataIndex: 'lastChange'
+            },
+            {
+                xtype: 'actioncolumn',
+                width: 50,
+                items: [{
+                    icon   : '../shared/icons/fam/delete.gif',  // Use a URL in the icon config
+                    tooltip: 'Sell stock',
+                    handler: function(grid, rowIndex, colIndex) {
+                        var rec = store.getAt(rowIndex);
+                        alert("Sell " + rec.get('company'));
+                    }
+                }, {
+                    getClass: function(v, meta, rec) {          // Or return a class from a function
+                        if (rec.get('change') < 0) {
+                            this.items[1].tooltip = 'Do not buy!';
+                            return 'alert-col';
+                        } else {
+                            this.items[1].tooltip = 'Buy stock';
+                            return 'buy-col';
+                        }
+                    },
+                    handler: function(grid, rowIndex, colIndex) {
+                        var rec = store.getAt(rowIndex);
+                        alert("Buy " + rec.get('company'));
+                    }
+                }]
+            }
+        ],
+        stripeRows: true,
+        autoExpandColumn: 'company',
+        height: 350,
+        width: 600,
+        title: 'Array Grid',
+        // config options for stateful behavior
+        stateful: true,
+        stateId: 'grid'
+    });
+
+	return page;
 })();
