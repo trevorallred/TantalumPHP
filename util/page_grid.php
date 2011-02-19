@@ -102,7 +102,9 @@ function createGrid($view) {
 				$editor = new JavaScriptObject();
 				switch ($field->data["displayType"]) {
 					case "Checkbox":
-						$fieldJS->add("align", "center");
+						$editor->add("xtype", "checkbox");
+						$editor->add("align", "center");
+						$fieldJS->add("editor", $editor);
 						break;
 					case "Combo":
 						break;
