@@ -51,12 +51,11 @@ function createGrid($view) {
 			$fieldAction->add("icon", "themes/default/icons/zoom.png");
 			$fieldAction->add("tooltip", "Open Table");
 			$fieldAction->addRaw("handler", "function(grid, rowIndex, colIndex) {
-                  var rec = ${modelName}Store.getAt(rowIndex);
+                var rec = ${modelName}Store.getAt(rowIndex);
 				Ext.Ajax.request( {
-					url : 'page.php?id=e88068d5-9f57-11df-936f-e37ecc873ea2',
+					url : 'page.php?id=e88068d5-9f57-11df-936f-e37ecc873ea2&filter=DefineTableTableID%3D%27' + rec.get('ManageTablesTableID') + '%27',
 					success : function(xhr) {
 						var newComponent = eval(xhr.responseText);
-						newComponent.filter(\"DefineTableTableID = '\" + rec.get('ManageTablesTableID') + \"'\");
 						var contentPanel = Ext.ComponentMgr.get('contentPanel');
 						contentPanel.add(newComponent);
 						contentPanel.setActiveTab(newComponent);

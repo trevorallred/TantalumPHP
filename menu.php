@@ -8,7 +8,6 @@ function onMenuClick(item) {
 		url : 'page.php?id='+item.pageID,
 		success : function(xhr) {
 			var newComponent = eval(xhr.responseText);
-			newComponent.filter("DefineTableTableID = 'fce924a9-9f57-11df-936f-e37ecc873ea2'");
 			var contentPanel = Ext.ComponentMgr.get('contentPanel');
 			contentPanel.add(newComponent);
 			contentPanel.setActiveTab(newComponent);

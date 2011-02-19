@@ -6,7 +6,12 @@
 function createStore($model) {
 	$config = new JavaScriptObject();
 	if ($model->parent == NULL) {
-		$config->add("url", "data.php?id=" . $model->getId());
+		$autoQuery = true;
+		$url = "data.php?id=" . $model->getId();
+		if (isset($_REQUEST["filter"])) {
+			$url .= "&condition=" . urlencode($_REQUEST["filter"]);
+		}
+		$config->add("url", $url);
 	} else {
 		$config->addRaw("parentStore", $model->parent->getName() . "Store");
 	}
