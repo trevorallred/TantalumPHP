@@ -4,8 +4,12 @@ require_once("util/startup.php");
 Ext.ns('Tantalum');
 
 function onMenuClick(item) {
+	var url = 'page.php?id='+item.pageID;
+	if (item.text == "Test") {
+		url = 'temp/test.js';
+	}
 	Ext.Ajax.request( {
-		url : 'page.php?id='+item.pageID,
+		url : url,
 		success : function(xhr) {
 			var newComponent = eval(xhr.responseText);
 			var contentPanel = Ext.ComponentMgr.get('contentPanel');
@@ -25,6 +29,11 @@ Tantalum.Menu = Ext.extend(Ext.Panel, {
 		text : '<b>Tantalum</b>'
 	}, {
 		xtype : 'tbseparator'
+	}, {
+		xtype : 'button',
+		text : 'Test',
+		handler : onMenuClick,
+		iconCls : 'icon-form-edit',
 	}, {
 		xtype : 'button',
 		text : 'List Tables',
@@ -49,6 +58,12 @@ Tantalum.Menu = Ext.extend(Ext.Panel, {
 		handler : onMenuClick,
 		iconCls : 'icon-form-edit',
 		pageID : 'e8806a9d-9f57-11df-936f-e37ecc873ea2'
+	}, {
+		xtype : 'button',
+		text : 'Define Model',
+		handler : onMenuClick,
+		iconCls : 'icon-form-edit',
+		pageID : '88002361-3c7f-11e0-8c47-001c238ae411'
 	} ],
 	initComponent : function() {
 		Tantalum.Menu.superclass.initComponent.call(this);
