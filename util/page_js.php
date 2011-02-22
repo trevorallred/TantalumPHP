@@ -50,12 +50,20 @@ function printView($view) {
 			$out .= ", " . printView($childView);
 		}
 		return $out;
-	} else {
+	} else if($viewType == "Tabs") {
 		$viewJS->add("xtype", "tabpanel");
 		$viewJS->add("flex", 10);
 		if ($childCount > 0) {
 			$viewJS->add("activeTab", 0);
 		}
+	} else {
+		$viewJS->add("xtype", "panel");
+		$viewJS->add("title", $view->data["label"]);
+		$viewJS->add("layout", "vbox");
+		$viewConfig = new JavaScriptObject();
+		$viewConfig->add("align", "stretch");
+		$viewConfig->add("flex", 1);
+		$viewJS->add("layoutConfig", $viewConfig);
 	}
 	
 	$viewJS->addRaw("items", $items);
@@ -66,7 +74,6 @@ function printView($view) {
 }
 ?>
 (function() {
-	var saveQueue;
 	var writer = new Ext.data.JsonWriter({});
 
 	<?php

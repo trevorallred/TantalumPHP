@@ -53,6 +53,7 @@ class ModelDAO extends BaseDAO {
 
 		$sql = Reference::sql();
 		$sql->addWhere("r.modelID = '$id'");
+		// echo "<p>".$model->getName() . $sql->sql();
 		$rows = $this->_db->select($sql->sql());
 		$referenceOrder = 1;
 		foreach ($rows as $row) {
@@ -136,7 +137,7 @@ class ModelDAO extends BaseDAO {
 				foreach ($parents as $row) {
 					$ids[] = "'".$row[$toField->getName()]."'";
 				}
-				$sql->addWhere($ref->getFromField()->data["basisColumnDbName"] . " IN (" . implode(", ", $ids) . ")");
+				$sql->addWhere("t0." . $ref->getFromField()->data["basisColumnDbName"] . " IN (" . implode(", ", $ids) . ")");
 			}
 		}
 		
@@ -209,6 +210,7 @@ class ViewDAO extends BaseDAO {
 		// Get the child views
 		$sql = View::sql();
 		$sql->addWhere("v.parentID = '" . $view->getId() . "'");
+		$sql->addOrderBy("displayOrder");
 		$rows = $this->_db->select($sql->sql());
 		foreach ($rows as $row) {
 			$view2 = new View($row);

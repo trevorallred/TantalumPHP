@@ -4,16 +4,14 @@
  * @param View $view
  */
 function createGrid($view) {
+	if ($view->getModel() == null) {
+		return;
+	}
 	$modelName = $view->getModel()->getName();
 	$config = new JavaScriptObject();
 	$config->add("title", $view->data["label"]);
-	$config->add("flex", 1);
+	$config->add("flex", 10);
 	$config->add("stripeRows", TRUE);
-	$columnDefaults = new JavaScriptObject();
-	$columnDefaults->add("xtype", "gridcolumn");
-	$columnDefaults->add("sortable", TRUE);
-	$columnDefaults->add("width", 120);
-	$config->add("defaults", $columnDefaults);
 	$config->addRaw("store", $modelName . "Store");
 	$config->addRaw("refresh", "function() {this.store.reload();}");
 	
@@ -37,6 +35,7 @@ function createGrid($view) {
 		}
 	})");
 	
+	$afteredit = array();
 	$columns = new JavaScriptArray();
 	$config->add("columns", $columns);
 	foreach ($view->getFields() as $field) {
@@ -70,6 +69,10 @@ function createGrid($view) {
 			$fieldJS->add("hidden", TRUE);
 		}
 		$fieldJS->add("header", $field->data["label"]);
+		
+		$fieldJS->add("sortable", TRUE);
+		//$fieldJS->add("xtype", "gridcolumn");
+		// $fieldJS->add("width", 120);
 		
 		$width = 0;
 		if ($field->data["size"] > 0) {
@@ -114,6 +117,9 @@ function createGrid($view) {
 			}
 		}
 		
+		if (strlen($field->data["afteredit"]) > 0) {
+			$afteredit[$field->getName()] = $field->data["afteredit"];
+		}
 		if (strlen($field->data["renderer"]) > 0) {
 			$fieldJS->addRaw("renderer", $field->data["renderer"]);
 		}
@@ -123,6 +129,23 @@ function createGrid($view) {
 	var <?php echo $view->getName() . "View" ?> = new Ext.grid.EditorGridPanel(
 		<?php echo $config->printOut(); ?>
 	);
+	
+	<?php
+	if(count($afteredit) > 0) {
+		echo $view->getName() . "View" ?>.addListener('afteredit', function(e) {
+		<?php
+		foreach ($afteredit as $key=>$value) { ?>
+			if (e.field == "<?php echo $key ?>") {
+				<?php echo $value ?>
+				e.record.endEdit();
+			}
+			<?php
+		}
+		?>
+		});
+		<?php
+	}
+	?>
 	
 	function Delete<?php echo $view->model->getName() ?>Store() {
 		var rows = <?php echo $view->getName() . "View" ?>.selModel.getSelections();

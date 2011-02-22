@@ -64,15 +64,17 @@ function createStore($model) {
 		}
 	});
 	var <?php echo $model->getName() ?>Store = new Tantalum.<?php echo $model->getName() ?>Store();
+	
 	<?php echo $model->getName() ?>Store.addListener('beforewrite', function(store, action, rs, options) {
-		saveQueue[action] = [];
+		store.saveQueue[action] = [];
 		if (Ext.isArray(rs)) {
-			saveQueue[action] = rs;
+			store.saveQueue[action] = rs;
 		} else {
-			saveQueue[action].push(rs);
+			store.saveQueue[action].push(rs);
 		}
 		return false;
 	});
+	
 	<?php
 	if (count($model->childModels) > 0) {
 		?>
@@ -97,59 +99,70 @@ function createStore($model) {
 		}
 	}
 	?>
+	
 	function save<?php echo $model->getName() ?>Store() {
+		var dirty = false;
 		var savejson = new Object();
 		var savejsonModel = new Object();
-		saveQueue = new Object();
+		<?php echo $model->getName() ?>Store.saveQueue = new Object();
 		<?php echo $model->getName() ?>Store.save();
 		
-		for ( var action in saveQueue) {
+		for ( var action in <?php echo $model->getName() ?>Store.saveQueue) {
 			if (Ext.isDefined(action)) {
 				savejsonModel[action] = [];
-				for ( var i = 0; i < saveQueue[action].length; i++) {
-					savejsonModel[action].push(saveQueue[action][i].data);
+				for ( var i = 0; i < <?php echo $model->getName() ?>Store.saveQueue[action].length; i++) {
+					savejsonModel[action].push(<?php echo $model->getName() ?>Store.saveQueue[action][i].data);
+					dirty = true;
 				}
 			}
 		}
 		savejson['<?php echo $model->getName() ?>'] = savejsonModel;
 		
-		Ext.Ajax.request( {
-			url : 'data.php',
-			method: 'POST',
-			success : function(response, opts) {
-				var obj = Ext.decode(response.responseText);
-
-				if (obj.success === false) {
-					alert(obj.error_message);
-					return;
-				}
-				for ( var action in saveQueue) {
-					if (Ext.isDefined(action)) {
-						this['on' + Ext.util.Format.capitalize(action) + 'Records'](true, saveQueue[action],
-								obj.<?php echo $model->getName() ?>[action]);
+		if (dirty) {
+			Ext.Ajax.request( {
+				url : 'data.php',
+				method: 'POST',
+				success : function(response, opts) {
+					var obj = Ext.decode(response.responseText);
+	
+					if (obj.success === false) {
+						alert(obj.error_message);
+						return;
 					}
-				}
-				<?php
-				foreach ($model->childModels as $childModel) {
-					echo "save".$childModel->getName()."Store(); ";
-				}
-				?>
-			},
-			failure : function(response, opts) {
-				alert("Failed to save data with status code " + response.status);
-			},
-			params : {
-				action : 'save',
-				id : '<?php echo $model->getId() ?>'
-			},
-			scope : <?php echo $model->getName() ?>Store,
-			jsonData : Ext.util.JSON.encode(savejson)
-		});
+					for ( var action in <?php echo $model->getName() ?>Store.saveQueue) {
+						if (Ext.isDefined(action)) {
+							this['on' + Ext.util.Format.capitalize(action) + 'Records'](true, <?php echo $model->getName() ?>Store.saveQueue[action],
+									obj.<?php echo $model->getName() ?>[action]);
+						}
+					}
+					<?php
+					foreach ($model->childModels as $childModel) {
+						echo "save".$childModel->getName()."Store(); ";
+					}
+					?>
+				},
+				failure : function(response, opts) {
+					alert("Failed to save data with status code " + response.status);
+				},
+				params : {
+					action : 'save',
+					id : '<?php echo $model->getId() ?>'
+				},
+				scope : <?php echo $model->getName() ?>Store,
+				jsonData : Ext.util.JSON.encode(savejson)
+			});
+		} else {
+			<?php
+			foreach ($model->childModels as $childModel) {
+				echo "save".$childModel->getName()."Store(); ";
+			}
+			?>
+		}
 	}
 	
 	<?php
-	
 	if ($model->parent == NULL) {
+		// TODO if the URL wasn't set, then don't do this
 		echo $model->getName() . "Store.load();\n";
 	}
 }

@@ -254,8 +254,14 @@ class Reference extends BaseTable {
 	public function printOut() {
 		HtmlUtils::printTable($this->data);
 		if ($this->model->parent != null) {
-			echo "<p>From:" . $this->getFromField()->getName();
-			echo " To:" . $this->getToField()->getName();
+			echo "<p>From: ";
+			if ($this->getFromField() != null) {
+				echo $this->getFromField()->getName();
+			}
+			echo " To: ";
+			if ($this->getToField() != null) {
+				echo $this->getToField()->getName();
+			}
 			echo "</p>";
 		}
 	}
@@ -294,6 +300,7 @@ class Reference extends BaseTable {
 		$sql->addField("r.id");
 		$sql->addField("r.parentID");
 		$sql->addField("r.name");
+		$sql->addField("r.joinID");
 
 		$sql->addJoin("tan_join j ON j.id = r.joinID");
 		$sql->addField("j.joinType");
