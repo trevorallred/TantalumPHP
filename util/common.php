@@ -31,7 +31,7 @@ class HtmlUtils {
 			return $json->encode($var);
 		}
 	}
-	
+
 	static public function jsonDecode($var) {
 		if (function_exists("json_decode")) {
 			// Use the native PHP method, only available in 5.3+
@@ -45,4 +45,10 @@ class HtmlUtils {
 	}
 }
 
+class DateUtils {
+	static function getMicrotime($e = 7) {
+		list($u, $s) = explode(' ',microtime());
+		return bcadd($u, $s, $e);
+	}
+}
 ?>

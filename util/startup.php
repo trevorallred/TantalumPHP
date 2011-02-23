@@ -17,6 +17,7 @@ if ($connection == null) {
 }
 $db = new Database($connection);
 
+session_start();
 // include_once 'util/cache/Cache.php';
 // Cache::setStore($SETS['cache']['cache_directory']);
 ?>
