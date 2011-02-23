@@ -78,6 +78,20 @@ class SelectSQL {
 		$this->orderBys[] = $column . ($asc ? "" : " DESC");
 	}
 
+	static public function appendIDs($ids) {
+		$list = "";
+		foreach ($ids as $value) {
+			if (strlen($list) > 0) {
+				$list .= ",";
+			}
+			$list .= "'" . SelectSQL::escape($value) . "'";
+		}
+		return $list;
+	}
+
+	static public function escape($value) {
+		return mysql_real_escape_string($value);
+	}
 }
 
 class UpdateSQL {

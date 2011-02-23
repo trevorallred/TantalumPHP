@@ -55,6 +55,15 @@ function createForm($view) {
 		if (record) {
 			view.getForm().loadRecord(record);
 			store.currentRow = record;
+			
+			<?php 
+			foreach ($view->getModel()->childModels as $childModel) {
+				$reference = $childModel->getParentReference();
+				$from = $reference->getFromField();
+				$to = $reference->getToField();
+				echo $childModel->getName()."Store.filter('".$reference->getFromField()->getName()."', record.data.".$reference->getToField()->getName()."); ";
+			}
+			?>
 		}
 	}
 	

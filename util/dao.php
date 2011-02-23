@@ -46,11 +46,42 @@ class ModelDAO extends BaseDAO {
 		$sql = Field::sql();
 		$sql->addWhere("f.modelID = '$id'");
 		$rows = $this->_db->select($sql->sql());
+		$fieldIDs = array();
 		foreach ($rows as $row) {
 			$field = new Field($row);
 			$model->fields[] = $field;
+			$fieldIDs[] = $field->getId();
 		}
 
+		if (count($fieldIDs) > 0) {
+			$fieldIDs = SelectSQL::appendIDs($fieldIDs);
+			
+			$sql = FieldAction::sql();
+			$sql->addWhere("f.fieldID IN (" . $fieldIDs . ")");
+			$rows = $this->_db->select($sql->sql());
+			foreach ($rows as $row) {
+				$fieldAction = new FieldAction($row);
+				//$field = $model->findByID();
+			}
+			
+			$sql = FieldActionDetail::sql();
+			$sql->addWhere("f.fieldID IN (" . $fieldIDs . ")");
+			$rows = $this->_db->select($sql->sql());
+			//echo $sql->sql() . "; <p>";
+			foreach ($rows as $row) {
+				$fieldActionDetail = new FieldActionDetail($row);
+				
+				$fieldActionID = $fieldActionDetail->data["fieldActionID"];
+				$fieldID = $fieldActionDetail->data["fieldID"];
+				if ($fieldActionID > '') {
+					
+				} else if ($fieldID > '') {
+					$field = $model->findByID($fieldID);
+					$field->fieldDetails[] = $fieldActionDetail;
+				}
+			}
+		}
+		
 		$sql = Reference::sql();
 		$sql->addWhere("r.modelID = '$id'");
 		// echo "<p>".$model->getName() . $sql->sql();

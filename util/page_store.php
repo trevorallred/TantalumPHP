@@ -26,6 +26,8 @@ function createStore($model) {
 		$config->add("idProperty", $model->getPrimaryKey()->getName());
 	}
 	
+	$fields = new JavaScriptArray();
+	
 	$sortField = null;
 	$lowestOrder = 0;
 	foreach ($model->fields as $field) {
@@ -34,17 +36,7 @@ function createStore($model) {
 			$sortField = $field;
 			$lowestOrder = $sortOrder;
 		}
-	}
-	if ($sortField != null) {
-		$sort = new JavaScriptObject();
-		$sort->add("field", $sortField->data["name"]);
-		$sort->add("direction", "ASC");
-		$config->add("sortInfo", $sort);
-	}
-	$config->add("currentRow", NULL);
-	
-	$fields = new JavaScriptArray();
-	foreach ($model->fields as $field) {
+		
 		$fieldJS = new JavaScriptObject();
 		$fields->add($fieldJS);
 		$fieldJS->add("name", $field->getName());
@@ -55,6 +47,15 @@ function createStore($model) {
 		}
 	}
 	$config->add("fields", $fields);
+	
+	if ($sortField != null) {
+		$sort = new JavaScriptObject();
+		$sort->add("field", $sortField->data["name"]);
+		$sort->add("direction", "ASC");
+		$config->add("sortInfo", $sort);
+	}
+	$config->add("currentRow", NULL);
+	
 	?>
 	Tantalum.<?php echo $model->getName() ?>Store = Ext.extend(Ext.data.JsonStore, {
 		constructor : function(cfg) {

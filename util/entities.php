@@ -138,6 +138,15 @@ class Model extends BaseTable {
 		return null;
 	}
 
+	public function findByID($id) {
+		foreach ($this->fields as $field) {
+			if ($field->getId() == $id) {
+				return $field;
+			}
+		}
+		return null;
+	}
+	
 	public function findReference($referenceID) {
 		if (strlen($referenceID) == 0) {
 			return null;
@@ -202,12 +211,25 @@ class Model extends BaseTable {
 }
 
 class Field extends BaseTable {
+	public $fieldActions = array();
+	public $fieldDetails = array();
+	
 	public function __construct($data) {
 		parent::__construct($data);
 	}
 
 	public function printOut() {
 		HtmlUtils::printTable($this->data);
+		echo "<ul>";
+		echo "FIELD ACTIONS:<br>";
+		foreach ($this->fieldActions as $o) {
+			$o->printOut();
+		}
+		echo "FIELD DETAILS:<br>";
+		foreach ($this->fieldDetails as $o) {
+			$o->printOut();
+		}
+		echo "</ul>";
 	}
 
 	/**
@@ -229,8 +251,80 @@ class Field extends BaseTable {
 		$sql->addLeftJoin("tan_field defaultField ON f.defaultFieldID = defaultField.id");
 		$sql->addField("defaultField.name defaultFieldName");
 
+		$sql->addLeftJoin("tan_model mSelector ON mSelector.id = f.selectorID");
+		$sql->addField("mSelector.name selectorModelName");
+
 		$sql->addOrderBy("f.displayOrder");
 
+		return $sql;
+	}
+	
+	public function getPrimaryFieldActionDetail() {
+		foreach ($this->fieldDetails as $o) {
+			if ($o->data["fieldID"] = $o->data["fromFieldID"]) {
+				return $o;
+			}
+			if ($o->data["fieldID"] = $o->data["toFieldID"]) {
+				return $o;
+			}
+		}
+		return null;
+	}
+}
+
+class FieldAction extends BaseTable {
+	public $fieldDetails = array();
+	
+	public function __construct($data) {
+		parent::__construct($data);
+	}
+
+	public function printOut() {
+		HtmlUtils::printTable($this->data);
+		echo "<ul>";
+		echo "FIELD DETAILS:<br>";
+		foreach ($this->fieldDetails as $o) {
+			$o->printOut();
+		}
+		echo "</ul>";
+	}
+
+	/**
+	 * @return SelectSQL
+	 */
+	static public function sql() {
+		$sql = new SelectSQL();
+		$sql->fromTable = "tan_field_action f";
+		$sql->addField("f.*");
+		$sql->addOrderBy("f.label");
+
+		return $sql;
+	}
+
+}
+
+class FieldActionDetail extends BaseTable {
+	public function __construct($data) {
+		parent::__construct($data);
+	}
+
+	public function printOut() {
+		HtmlUtils::printTable($this->data);
+	}
+
+	/**
+	 * @return SelectSQL
+	 */
+	static public function sql() {
+		$sql = new SelectSQL();
+		$sql->fromTable = "tan_field_action_detail f";
+		$sql->addField("f.*");
+
+		$sql->addLeftJoin("tan_field fromField ON fromField.id = f.fromFieldID");
+		$sql->addField("fromField.name AS fromFieldName");
+		$sql->addLeftJoin("tan_field toField ON toField.id = f.toFieldID");
+		$sql->addField("toField.name AS toFieldName");
+		
 		return $sql;
 	}
 

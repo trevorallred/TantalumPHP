@@ -15,9 +15,8 @@ function createGrid($view) {
 	$config->addRaw("store", $modelName . "Store");
 	$config->addRaw("refresh", "function() {this.store.reload();}");
 	
-	$smFunction = "page.currentStore = ${modelName}Store;
-		${modelName}Store.currentRow = record;
-	";
+	$smFunction = "page.currentStore = ${modelName}Store; ${modelName}Store.currentRow = record; ";
+	
 	foreach ($view->getModel()->childModels as $childModel) {
 		// TODO enhance this a bit more http://dev.sencha.com/deploy/dev/docs/source/Store.html#method-Ext.data.Store-filter
 		$reference = $childModel->getParentReference();
@@ -114,6 +113,38 @@ function createGrid($view) {
 						$editor->add("xtype", "textfield");
 						$fieldJS->add("editor", $editor);
 				}
+				if ($field->data["selectorID"] > '') {
+					$editor = new JavaScriptObject();
+					$editor->add("lazyRender", TRUE);
+					$editor->add("triggerAction", "all");
+					$editor->add("mode", "remote");
+					$primaryFieldActionDetail = $field->getPrimaryFieldActionDetail();
+					$fromFieldName = $primaryFieldActionDetail->data["fromFieldName"];
+					$editor->add("displayField", $fromFieldName);
+					$editor->add("queryParam", "query[" . $fromFieldName . "]");
+					
+					$storeConfig = new JavaScriptObject();
+					$storeConfig->add("url", "data.php?id=" . $field->data["selectorID"]);
+					$storeConfig->add("root", $field->data["selectorModelName"]);
+					$storeConfigFields = new JavaScriptArray();
+					foreach ($field->fieldDetails as $fieldDetail) {
+						if ($fieldDetail->data["fromFieldName"] > '') {
+							$storeConfigFields->add($fieldDetail->data["fromFieldName"]);
+						}
+					}
+					$storeConfig->add("fields", $storeConfigFields);
+					
+					$editor->addRaw("store", "new Ext.data.JsonStore(" . $storeConfig->printOut() . ")");
+					$selectFunction = "";
+					foreach ($field->fieldDetails as $fieldDetail) {
+						if ($fieldDetail != $primaryFieldActionDetail && $fieldDetail->data["fromFieldName"]) {
+							$selectFunction .= "this.gridEditor.record.data." . $fieldDetail->data["toFieldName"] . " = record.data." . $fieldDetail->data["fromFieldName"] . "; ";
+						}
+					}
+					
+					$editor->addRaw("listeners", "{'select': function(combo, record) { $selectFunction }}");
+					$fieldJS->addRaw("editor", "new Ext.form.ComboBox(" . $editor->printOut() . ")");
+				}
 			}
 		}
 		
@@ -146,6 +177,24 @@ function createGrid($view) {
 		<?php
 	}
 	?>
+	function Position<?php echo $view->model->getName() ?>StoreChange(direction) {
+		var record = <?php echo $view->model->getName() ?>Store.currentRow;
+		if (record) {
+			var index = <?php echo $view->model->getName() ?>Store.indexOf(record);
+			Position<?php echo $view->model->getName() ?>Store(index + direction);
+		}
+	}
+	
+	function Position<?php echo $view->model->getName() ?>Store(index) {
+		var view = <?php echo $view->getName() ?>View;
+		var store = <?php echo $view->model->getName() ?>Store;
+		var record = store.data.items[index];
+		if (record) {
+			store.currentRow = record;
+			view.selModel.clearSelections();
+			view.selModel.selectRow(index);
+		}
+	}
 	
 	function Delete<?php echo $view->model->getName() ?>Store() {
 		var rows = <?php echo $view->getName() . "View" ?>.selModel.getSelections();

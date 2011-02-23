@@ -30,7 +30,15 @@ try {
 		}
 		die();
 	}
-	$data = $dao->getData($model, null, $_REQUEST["condition"]);
+	$condition = $_REQUEST["condition"];
+	if (isset($_REQUEST["query"])) {
+		foreach ($_REQUEST["query"] as $fieldName=>$value) {
+			if (strlen($value) > 0) {
+				$condition .= "$fieldName LIKE '%$value%'";
+			}
+		};
+	}
+	$data = $dao->getData($model, null, $condition);
 	
 	echo HtmlUtils::jsonEncode($data);
 	
