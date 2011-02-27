@@ -104,7 +104,7 @@ class DataSaver extends BaseDAO {
 								*/
 							if ($primaryKey) {
 								// TODO escape quotes or use binding
-								$where = $field->data["basisColumnDbName"] . " = '" . $row->$fieldName . "'";
+								$where = $field->data["basisColumnDbName"] . " = '" . SelectSQL::escape($row->$fieldName) . "'";
 								$sql->addWhere($where);
 							} else if ($field->data["editable"] == 1) {
 								$value = null;

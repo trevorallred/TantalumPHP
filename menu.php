@@ -1,10 +1,24 @@
 <?php
 require_once("util/startup.php");
+require_once("util/entities.php");
+require_once("util/dao.php");
+
+require_once("util/js_converter.php");
+require_once("util/logging.php");
+
+try {
+	$builder = new MenuDAO($db);
+	$menu = $builder->build("941a47b2-4183-11e0-8705-001c238ae411");
+} catch (Exception $e) {
+	Logging::error("Building Menu", $e->getMessage());
+}
+//$menu->printOut();
+
 ?>
 Ext.ns('Tantalum');
 
 function onMenuClick(item) {
-	var url = 'page.php?id='+item.pageID;
+	var url = 'page.php?id='+item.viewID;
 	if (item.text == "Test") {
 		url = 'temp/test.js';
 	}
@@ -26,45 +40,27 @@ Tantalum.Menu = Ext.extend(Ext.Panel, {
 	region : 'north',
 	bbar : [ {
 		xtype : 'tbtext',
-		text : '<b>Tantalum</b>'
+		text : '<b><?php echo $menu->data["label"] ?></b>'
 	}, {
 		xtype : 'tbseparator'
 	}, {
 		xtype : 'button',
 		text : 'Test',
 		handler : onMenuClick,
-		iconCls : 'icon-form-edit',
-	}, {
-		xtype : 'button',
-		text : 'List Tables',
-		handler : onMenuClick,
-		iconCls : 'icon-form-edit',
-		pageID : 'e88065f5-9f57-11df-936f-e37ecc873ea2'
-	}, {
-		xtype : 'button',
-		text : 'Define Table',
-		handler : onMenuClick,
-		iconCls : 'icon-form-edit',
-		pageID : 'e88068d5-9f57-11df-936f-e37ecc873ea2'
-	}, {
-		xtype : 'button',
-		text : 'List Pages',
-		handler : onMenuClick,
-		iconCls : 'icon-form-edit',
-		pageID : 'e8806c5f-9f57-11df-936f-e37ecc873ea2'
-	}, {
-		xtype : 'button',
-		text : 'List Models',
-		handler : onMenuClick,
-		iconCls : 'icon-form-edit',
-		pageID : 'e8806a9d-9f57-11df-936f-e37ecc873ea2'
-	}, {
-		xtype : 'button',
-		text : 'Define Model',
-		handler : onMenuClick,
-		iconCls : 'icon-form-edit',
-		pageID : '88002361-3c7f-11e0-8c47-001c238ae411'
-	} ],
+		iconCls : 'icon-form-edit'
+	}
+<?php 
+	foreach ($menu->subMenus as $submenu) {
+		$menuJS = new JavaScriptObject();
+		$menuJS->add("xtype", "button");
+		$menuJS->add("text", $submenu->data["label"]);
+		$menuJS->addRaw("handler", "onMenuClick");
+		$menuJS->add("iconCls", "icon-form-edit");
+		$menuJS->add("viewID", $submenu->data["viewID"]);
+		echo "," . $menuJS->printOut();
+	}
+?>
+	],
 	initComponent : function() {
 		Tantalum.Menu.superclass.initComponent.call(this);
 	}

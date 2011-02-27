@@ -141,7 +141,7 @@ class UpdateSQL {
 			else if ($value == "NOW()")
 				$sql .= $value;
 			else
-				$sql .= "'".$value."'";
+				$sql .= "'".SelectSQL::escape($value)."'";
 		}
 
 		if (!$this->insert) {

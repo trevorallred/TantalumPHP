@@ -391,6 +391,7 @@ class Reference extends BaseTable {
 	static public function sql() {
 		$sql = new SelectSQL();
 		$sql->fromTable = "tan_reference r";
+		$sql->addOrderBy("r.parentID");
 		$sql->addField("r.id");
 		$sql->addField("r.parentID");
 		$sql->addField("r.name");
@@ -450,6 +451,40 @@ class ColumnTypes {
 		$values = ColumnTypes::getValues();
 		for ($i = 0; $i < count($values); $i++) {
 			echo ($i > 0 ? "," : "") . "['" . $values[$i] . "']";
+		}
+	}
+}
+
+class Menu extends BaseTable {
+	public $subMenus = array();
+	
+	public function __construct($data) {
+		parent::__construct($data);
+	}
+
+	/**
+	 * @return SelectSQL
+	 */
+	static public function sql() {
+		$sql = new SelectSQL();
+		$sql->fromTable = "tan_menu m";
+		$sql->addField("m.*");
+		$sql->addOrderBy("m.displayOrder");
+
+		$sql->addLeftJoin("tan_view v ON v.id = m.viewID");
+		$sql->addField("v.label viewLabel");
+
+		return $sql;
+	}
+
+	public function printOut() {
+		HtmlUtils::printTable($this->data);
+			echo "Submenus<ul>";
+			foreach ($this->subMenus as $submenu) {
+				$submenu->printOut();
+			}
+			echo "</ul>";
+		if (count($this->subMenus) > 0) {
 		}
 	}
 }

@@ -87,6 +87,8 @@ class ModelDAO extends BaseDAO {
 		// echo "<p>".$model->getName() . $sql->sql();
 		$rows = $this->_db->select($sql->sql());
 		$referenceOrder = 1;
+		// TODO Make sure the parentID already exists before adding it to model->references
+		// Otherwise we'll get a query that does a join to a later table
 		foreach ($rows as $row) {
 			$o2 = new Reference($row);
 			$o2->model = $model;
@@ -113,14 +115,20 @@ class ModelDAO extends BaseDAO {
 	 * @param unknown_type $parents
 	 */
 	public function getData($model, $parents, $condition) {
-		//echo $model->getName() . "<br>";
+		// echo "<p>MODEL: " . $model->getName() . "<br>";
 		$sql = new SelectSQL();
 		$sql->fromTable = $model->data['basisTableDbName'] . " t0";
 
 		// Add the JOINs
 		foreach ($model->references as $reference) {
+			// echo $reference->printOut();
+			$fromTableOrder = 0;
+			$parentReference = $model->findReference($reference->data['parentID']);
+			if ($parentReference != null) {
+				$fromTableOrder = $parentReference->order;
+			}
 			$join = $reference->data['joinToTableDbName'] . " t" . $reference->order ." 
-				ON t0." . $reference->data['fromColumnDbName'] . " = t" . $reference->order . "." . $reference->data['toColumnDbName'];
+				ON t${fromTableOrder}." . $reference->data['fromColumnDbName'] . " = t" . $reference->order . "." . $reference->data['toColumnDbName'];
 			$sql->addLeftJoin($join);
 		}
 		
@@ -156,20 +164,21 @@ class ModelDAO extends BaseDAO {
 		if ($model->data['condition'] > '') {
 			$sql->addWhere(TQL::parse($model->data['condition'], $model));
 		}
-		if ($parents != null && count($parents) > 0) {
-			$ref = $model->getParentReference();
-			if ($ref == null) {
-				// Until the user defines a reference, don't try to return anything yet
-				$sql->addWhere("1 = 0");
-			} else {
-				$toField = $ref->getToField();
-				
-				$ids = array();
-				foreach ($parents as $row) {
-					$ids[] = "'".$row[$toField->getName()]."'";
-				}
-				$sql->addWhere("t0." . $ref->getFromField()->data["basisColumnDbName"] . " IN (" . implode(", ", $ids) . ")");
+		$ref = $model->getParentReference();
+		if ($ref != null) {
+			// echo $ref->printOut() . "<p>Count " . count($parents);
+			if (count($parents) == 0) {
+				$data[$model->data['name']] = array();
+				return $data;
 			}
+			
+			$toField = $ref->getToField();
+			
+			$ids = array();
+			foreach ($parents as $row) {
+				$ids[] = "'".$row[$toField->getName()]."'";
+			}
+			$sql->addWhere("t0." . $ref->getFromField()->data["basisColumnDbName"] . " IN (" . implode(", ", $ids) . ")");
 		}
 		
 		// Query Data
@@ -253,6 +262,50 @@ class ViewDAO extends BaseDAO {
 
 }
 
+class MenuDAO extends BaseDAO {
+	function __construct($db) {
+		$this->_db = $db;
+	}
+
+	/**
+	 * @param String $id View GUID
+	 * @return View
+	 */
+	public function build($id) {
+		// Get the top menu
+		$sql = Menu::sql();
+		$sql->addWhere("m.id = '$id'");
+		$rows = $this->_db->select($sql->sql());
+		if (count($rows) == 0) {
+			throw new Exception("Could not find Menu $id");
+		}
+		$o = new Menu($rows[0]);
+		$o->subMenus = $this->getSubMenus($o);
+		//$o->printOut();
+		
+		return $o;
+	}
+	
+	public function getSubMenus($menu) {
+		$sql = Menu::sql();
+		$sql->addWhere("m.parentID = '" . $menu->getId() . "'");
+		//echo $sql->sql();
+		$rows = $this->_db->select($sql->sql());
+		$subMenus = array();
+		foreach ($rows as $row) {
+			//print_r($row);
+			$subMenu = new Menu($row);
+			if ($subMenu->data["viewID"] == null) {
+				$subMenu->subMenus = $this->getSubMenus($subMenu);
+			}
+			$subMenus[] = $subMenu;
+			//$subMenu->printOut();
+		}
+		//echo "<p>" . count($menu->subMenus) . "</p>";
+		return $subMenus;
+	}
+}
+
 /**
  * @param Field $a
  * @param Field $b
@@ -260,5 +313,6 @@ class ViewDAO extends BaseDAO {
 function fieldSortOrder($a, $b) {
 	return $a->data["sortOrder"] - $b->data["sortOrder"];
 }
+
 
 ?>

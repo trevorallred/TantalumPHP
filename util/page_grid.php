@@ -12,6 +12,27 @@ function createGrid($view) {
 	$config->add("title", $view->data["label"]);
 	$config->add("flex", 10);
 	$config->add("stripeRows", TRUE);
+	$tbar = new JavaScriptObject();
+	$tbar->add("xtype", "toolbar");
+	$tbarItems = new JavaScriptArray();
+	
+	$tbarAdd = new JavaScriptObject();
+	$tbarDelete = new JavaScriptObject();
+	$tbarItems->add($tbarAdd);
+	$tbarItems->add($tbarDelete);
+	
+	$tbarAdd->add("iconCls", "icon-plus");
+	$tbarAdd->add("itemId", "add");
+	$tbarAdd->add("text", "Add");
+	$tbarAdd->addRaw("handler", "Add" . $view->getModel()->getName(). "Store");
+	
+	$tbarDelete->add("iconCls", "icon-minus");
+	$tbarDelete->add("itemId", "delete");
+	$tbarDelete->add("text", "Delete");
+	$tbarDelete->addRaw("handler", "Delete" . $view->getModel()->getName(). "Store");
+	
+	$tbar->addRaw("items", $tbarItems);
+	$config->addRaw("tbar", $tbar->printOut());
 	$config->addRaw("store", $modelName . "Store");
 	$config->addRaw("refresh", "function() {this.store.reload();}");
 	
@@ -208,11 +229,15 @@ function createGrid($view) {
 		var o = new obj({ });
 		<?php
 		foreach ($view->model->fields as $field) {
-			$field_default = $field->data["defaultFieldName"];
-			if (strlen($field_default) > 0) {
+			$default = $field->data["defaultFieldName"];
+			if (strlen($default) > 0) {
 				$view->model->findField($columnID);
-				echo "o.data.".$field->getName()." = store.parentStore.currentRow.data.".$field_default.";
-				";
+				echo "o.data.".$field->getName()." = store.parentStore.currentRow.data.".$default."; ";
+			}
+			
+			$default = $field->data["defaultValue"];
+			if (strlen($default) > 0) {
+				echo "o.data.".$field->getName()." = $default; ";
 			}
 		}
 		?>

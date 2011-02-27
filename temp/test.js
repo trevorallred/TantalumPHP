@@ -1,69 +1,77 @@
 (function() {
-	var saveQueue;
 	var writer = new Ext.data.JsonWriter({});
 
-	Tantalum.ManageTablesStore = Ext.extend(Ext.data.JsonStore, {
+	Tantalum.ListModelsStore = Ext.extend(Ext.data.JsonStore, {
 		constructor : function(cfg) {
 			cfg = cfg || {};
-			Tantalum.ManageTablesStore.superclass.constructor.call(this, 
+			Tantalum.ListModelsStore.superclass.constructor.call(this, 
 				Ext.apply({
-					"url": "data.php?id=095e0687-9f58-11df-936f-e37ecc873ea2",
-					"writer": writer,
-					"autoSave": false,
-					"root": "ManageTables", 
-					"idProperty": "ManageTablesTableID", 
+					"url": "data.php?id=095e1122-9f58-11df-936f-e37ecc873ea2", "views": {}, "autoDestroy": true, "batch": true, 
+					"autoSave": false, "pruneModifiedRecords": true, "writer": writer, 
+					"root": "ListModels", "idProperty": "ListModelModelID", 
+					"sortInfo": {"field": "ListModelParentID", "direction": "ASC"}, 
 					"fields": [{
-						"name": "ManageTablesTableID"
+						"name": "ListModelModelID"
 					},{
-						"name": "ManageTablesName",
-						"sortType": "asUCText"
-					},{
-						"name": "ManageTablesDatabaseName"
+						"name": "ListModelName"},{"name": "ListModelBasisTableID"},{"name": "ListModelBasisTableName"},{
+						"name": "ListModelParentID"},{"name": "ListModelReferenceID"},{
+						"name": "ListModelResultsPerPage", "type": "integer"
 					}]
-				},
-				cfg)
-			);
+				}, cfg));
 		}
 	});
-	var ManageTablesStore = new Tantalum.ManageTablesStore();
-
-	ManageTablesStore.load();
+	var ListModelsStore = new Tantalum.ListModelsStore();
+	ListModelsStore.load();
 	
-	var ListTablesView = new Ext.grid.EditorGridPanel(
+	var ListModelsView = new Ext.grid.EditorGridPanel(
 		{
-			"title": "List Tables",
-			"flex": 10,
-			"stripeRows": true, 
-			"store": ManageTablesStore,
+			"title": "List Models", "flex": 10, "stripeRows": true, 
+			"store": ListModelsStore, 
 			"columns": [{
-				"sortable": true,
-            	"header": "Table name",
-            	"dataIndex": "ManageTablesName",
-            	"editor": {"xtype": "textfield"}
+				"header": "Model ID", "sortable": true, "width": 225, "dataIndex": "ListModelModelID", "editor": {"xtype": "textfield"}
 			},{
-				"sortable": true,
-				"header": "DB name",
-				"dataIndex": "ManageTablesDatabaseName", 
-            	"editor": {"xtype": "textfield"}
-            }]
+				"header": "Model Name", "sortable": true, "dataIndex": "ListModelName", "editor": {"xtype": "textfield"}
+			},{
+				"header": "BasisTableID", "sortable": true, "width": 220, "dataIndex": "ListModelBasisTableID", "editor": {"xtype": "textfield"}
+			},{
+				"header": "Basis Table", 
+				"sortable": true, 
+				"dataIndex": "ListModelBasisTableName", 
+				"editor": new Ext.form.ComboBox({
+					lazyRender: true,
+					triggerAction: 'all',
+					mode: 'remote',
+					store: new Ext.data.JsonStore({
+				    	autoDestroy: true,
+				        fields: ['ManageTablesTableID','ManageTablesName','ManageTablesDatabaseName'],
+				        url: 'data.php?id=095e0687-9f58-11df-936f-e37ecc873ea2',
+						root: 'ManageTables',
+						idProperty: 'ManageTablesTableID'
+				    }),
+					displayField: 'ManageTablesName',
+					queryParam: 'query[ManageTablesName]',
+					listeners:{
+						'select': function(combo, record) {
+							this.gridEditor.record.data.ListModelBasisTableID = record.data.ManageTablesTableID;
+						}
+					}
+				})
+			}]
 		}
 	);
 	
-	ListTablesView.addListener('afteredit', function(e) {
-		if (e.field == "ManageTablesName") {
-			e.record.data.ManageTablesDatabaseName = 'tan_' + e.value.toLowerCase();
-			e.record.endEdit();
-		}
-	});
-	
 	var page = new Ext.Panel({
-		title : 'List Tables',
+		currentStore : null,
+		title : 'List Models',
 		layout : 'vbox',
 		layoutConfig : {
 		    align : 'stretch',
 		    flex : 1
 		},
-		items: [ListTablesView]
+		filter : function(condition) {
+			ListModelsStore.load({"params" : {"condition" : condition}});
+		},
+		items: [ListModelsView ]
 	});
 	
 	return page;
