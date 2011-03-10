@@ -105,19 +105,35 @@ class ModelDAO extends BaseDAO {
 			$o2 = new Model($row);
 			$o2->parent = $model;
 			$model->childModels[] = $o2;
-			$this->fill($o2);
+			if ($o2->getId() == $id) {
+				// Recursive relationship
+				$model->parent = $model;
+			} else {
+				$this->fill($o2);
+			}
 		}
 		Cache::write("Model", $model->getId(), $model);
 	}
+	
 	/**
 	 * 
 	 * @param Model $model
 	 * @param unknown_type $parents
 	 */
-	public function getData($model, $parents, $condition) {
-		// echo "<p>MODEL: " . $model->getName() . "<br>";
+	public function getData($model, $parents, $condition, $start=0, $limit=0) {
+		//echo "<p>MODEL: " . $model->getName() . "<br>";
 		$sql = new SelectSQL();
 		$sql->fromTable = $model->data['basisTableDbName'] . " t0";
+		if ($model->data["resultsPerPage"] > 0) {
+			if ($start > 0) {
+				$sql->startRow = $start;
+			}
+			if ($limit > 0) {
+				$sql->limit = $limit;
+			}
+			$sql->calculateFoundRows = true;
+			//$sql->limit = (int)$model->data["resultsPerPage"];
+		}
 
 		// Add the JOINs
 		foreach ($model->references as $reference) {
@@ -164,34 +180,53 @@ class ModelDAO extends BaseDAO {
 		if ($model->data['condition'] > '') {
 			$sql->addWhere(TQL::parse($model->data['condition'], $model));
 		}
+		
 		$ref = $model->getParentReference();
 		if ($ref != null) {
-			// echo $ref->printOut() . "<p>Count " . count($parents);
-			if (count($parents) == 0) {
-				$data[$model->data['name']] = array();
-				return $data;
-			}
-			
 			$toField = $ref->getToField();
 			
 			$ids = array();
 			foreach ($parents as $row) {
 				$ids[] = "'".$row[$toField->getName()]."'";
 			}
-			$sql->addWhere("t0." . $ref->getFromField()->data["basisColumnDbName"] . " IN (" . implode(", ", $ids) . ")");
+			
+			if ($model->data["parentID"] == $model->getId()) {
+				if (count($parents) == 0) {
+					$sql->addWhere("t0." . $ref->getFromField()->data["basisColumnDbName"] . " IS NULL");
+				} else {
+					$sql->addWhere("t0." . $ref->getFromField()->data["basisColumnDbName"] . " IN (" . implode(", ", $ids) . ")");
+				}
+			} else {
+				// echo $ref->printOut() . "<p>Count " . count($parents);
+				if (count($parents) == 0) {
+					$data[$model->data['name']] = array();
+					return $data;
+				}
+				
+				$sql->addWhere("t0." . $ref->getFromField()->data["basisColumnDbName"] . " IN (" . implode(", ", $ids) . ")");
+			}
 		}
 		
 		// Query Data
-		// echo "<p>" . $sql->sql() . "</p>";
+		//echo "<p>" . $sql->sql() . "</p>";
 		$data[$model->data['name']] = $this->_db->select($sql->sql());
+		//print_r($data);
+		if ($model->isTop()) {
+			$data["totalCount"] = $this->_db->foundRows();
+		}
 		
 		foreach ($model->childModels as $childModel) {
-			$d2 = $this->getData($childModel, $data[$model->data['name']]);
+			if ($childModel->getId() == $model->getId()) {
+				if (count($data[$model->data['name']]) > 0) {
+					$d2 = $this->getData($model, $data[$model->data['name']]);
+				}
+			} else {
+				$d2 = $this->getData($childModel, $data[$model->data['name']]);
+			}
 			foreach ($d2 as $key=>$value) {
 				$data[$key] = $value;
 			}
 		}
-		
 		return $data;
 	}
 }

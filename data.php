@@ -38,7 +38,7 @@ try {
 			}
 		};
 	}
-	$data = $dao->getData($model, null, $condition);
+	$data = $dao->getData($model, null, $condition, $_REQUEST["start"], $_REQUEST["limit"]);
 	
 	echo HtmlUtils::jsonEncode($data);
 	

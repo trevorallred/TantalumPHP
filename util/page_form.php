@@ -5,11 +5,11 @@
  */
 function createForm($view) {
 	$config = new JavaScriptObject();
-	$config->add("boundRecord", null);
+	//$config->add("boundRecord", null);
 	$config->add("border", TRUE);
 	$config->add("padding", 5);
 	$config->add("title", $view->getName());
-	$modelName = $view->model->getName();
+	$modelName = $view->getModel()->getName();
 	$items = new JavaScriptArray();
 	$config->add("items", $items);
 	// $items->add(new JavaScriptObject("fieldLabel", "Test"));
@@ -36,21 +36,21 @@ function createForm($view) {
 		<?php echo $config->printOut() ?>
 	);
 	
-	<?php echo $view->model->getName() ?>Store.on('load', function() {
-		Position<?php echo $view->model->getName() ?>Store(0);
+	<?php echo $view->getModel()->getName() ?>Store.on('load', function() {
+		Position<?php echo $view->getModel()->getName() ?>Store(0);
 	});
 	
-	function Position<?php echo $view->model->getName() ?>StoreChange(direction) {
-		var record = <?php echo $view->model->getName() ?>Store.currentRow;
+	function Position<?php echo $view->getModel()->getName() ?>StoreChange(direction) {
+		var record = <?php echo $view->getModel()->getName() ?>Store.currentRow;
 		if (record) {
-			var index = <?php echo $view->model->getName() ?>Store.indexOf(record);
-			Position<?php echo $view->model->getName() ?>Store(index + direction);
+			var index = <?php echo $view->getModel()->getName() ?>Store.indexOf(record);
+			Position<?php echo $view->getModel()->getName() ?>Store(index + direction);
 		}
 	}
 	
-	function Position<?php echo $view->model->getName() ?>Store(index) {
+	function Position<?php echo $view->getModel()->getName() ?>Store(index) {
 		var view = <?php echo $view->getName() ?>View;
-		var store = <?php echo $view->model->getName() ?>Store;
+		var store = <?php echo $view->getModel()->getName() ?>Store;
 		var record = store.data.items[index];
 		if (record) {
 			view.getForm().loadRecord(record);
@@ -67,21 +67,21 @@ function createForm($view) {
 		}
 	}
 	
-	function Delete<?php echo $view->model->getName() ?>Store() {
+	function Delete<?php echo $view->getModel()->getName() ?>Store() {
 		var rows = <?php echo $view->getName() . "View" ?>.selModel.getSelections();
-		<?php echo $view->model->getName() ?>Store.remove(rows);
+		<?php echo $view->getModel()->getName() ?>Store.remove(rows);
 	}
 
-	function Add<?php echo $view->model->getName() ?>Store() {
-		var store = <?php echo $view->model->getName() ?>Store;
+	function Add<?php echo $view->getModel()->getName() ?>Store() {
+		var store = <?php echo $view->getModel()->getName() ?>Store;
 		var grid = <?php echo $view->getName() ?>View;
 		var obj = store.recordType;
 		var o = new obj({ });
 		<?php
-		foreach ($view->model->fields as $field) {
+		foreach ($view->getModel()->fields as $field) {
 			$field_default = $field->data["defaultFieldName"];
 			if (strlen($field_default) > 0) {
-				$view->model->findField($columnID);
+				$view->getModel()->findField($columnID);
 				echo "o.data.".$field->getName()." = store.parentStore.currentRow.data.".$field_default.";
 				";
 			}

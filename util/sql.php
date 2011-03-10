@@ -8,6 +8,7 @@ class SelectSQL {
 	private $orderBys = array();
 	public $startRow = 0;
 	public $limit = -1;
+	public $calculateFoundRows = false;
 
 	/**
 	 * Return the sql clause in this format:
@@ -18,6 +19,9 @@ class SelectSQL {
 	 */
 	public function sql() {
 		$sql = "SELECT ";
+		if ($this->calculateFoundRows) {
+			$sql .= "SQL_CALC_FOUND_ROWS ";
+		}
 		if (count($this->fields) > 0) {
 			$sql .= implode(", ", $this->fields);
 		} else {

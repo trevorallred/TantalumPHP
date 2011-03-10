@@ -12,6 +12,7 @@ function createGrid($view) {
 	$config->add("title", $view->data["label"]);
 	$config->add("flex", 10);
 	$config->add("stripeRows", TRUE);
+	$config->add("loadMask", TRUE);
 	$tbar = new JavaScriptObject();
 	$tbar->add("xtype", "toolbar");
 	$tbarItems = new JavaScriptArray();
@@ -20,7 +21,7 @@ function createGrid($view) {
 	$tbarDelete = new JavaScriptObject();
 	$tbarItems->add($tbarAdd);
 	$tbarItems->add($tbarDelete);
-	
+
 	$tbarAdd->add("iconCls", "icon-plus");
 	$tbarAdd->add("itemId", "add");
 	$tbarAdd->add("text", "Add");
@@ -36,6 +37,14 @@ function createGrid($view) {
 	$config->addRaw("store", $modelName . "Store");
 	$config->addRaw("refresh", "function() {this.store.reload();}");
 	
+	if ($view->getModel()->isTop()) {
+		$pagingTB = "new Ext.PagingToolbar({
+			pageSize: ".$view->getModel()->data["resultsPerPage"].",
+			store: ${modelName}Store
+		})";
+		$config->addRaw("bbar", $pagingTB);
+	}
+
 	$smFunction = "page.currentStore = ${modelName}Store; ${modelName}Store.currentRow = record; ";
 	
 	foreach ($view->getModel()->childModels as $childModel) {
@@ -64,11 +73,15 @@ function createGrid($view) {
 			$fieldAction = new JavaScriptObject();
 			$columns->add($fieldAction);
 			$fieldAction->add("xtype", "actioncolumn");
+			// $fieldAction->add("header", "");
+			$fieldAction->add("tooltip", "Define Table");
+			$fieldAction->add("fixed", TRUE);
+			$fieldAction->add("hideable", FALSE);
+			$fieldAction->add("menuDisabled", TRUE);
 			$fieldAction->add("sortable", FALSE);
 			$fieldAction->add("resizable", FALSE);
-			$fieldAction->add("width", 29);
-			$fieldAction->add("icon", "themes/default/icons/zoom.png");
-			$fieldAction->add("tooltip", "Open Table");
+			$fieldAction->add("width", 18);
+			$fieldAction->add("icon", "ext-3.3.1/resources/images/default/toolbar/more.gif");
 			$fieldAction->addRaw("handler", "function(grid, rowIndex, colIndex) {
                 var rec = ${modelName}Store.getAt(rowIndex);
 				Ext.Ajax.request( {
@@ -106,6 +119,7 @@ function createGrid($view) {
 		if ($width > 0 && $width < $minWidth) {
 			$width = $minWidth;
 		}
+		
 		if ($width > 0) {
 			$fieldJS->add("width", $width);
 		}
@@ -126,19 +140,24 @@ function createGrid($view) {
 					case "Checkbox":
 						$editor->add("xtype", "checkbox");
 						$editor->add("align", "center");
-						$fieldJS->add("editor", $editor);
+						// $fieldJS->add("editor", $editor);
+						// $fieldJS->add("xtype", "booleancolumn");
+						// $fieldJS->add("trueText", "Yes");
+						// $fieldJS->add("falseText", "No");
 						break;
 					case "Combo":
 						break;
 					default:
 						$editor->add("xtype", "textfield");
 						$fieldJS->add("editor", $editor);
+						// $fieldJS->add("selectOnFocus", TRUE);
 				}
 				if ($field->data["selectorID"] > '') {
 					$editor = new JavaScriptObject();
 					$editor->add("lazyRender", TRUE);
 					$editor->add("triggerAction", "all");
 					$editor->add("mode", "remote");
+					$editor->add("selectOnFocus", TRUE);
 					$primaryFieldActionDetail = $field->getPrimaryFieldActionDetail();
 					$fromFieldName = $primaryFieldActionDetail->data["fromFieldName"];
 					$editor->add("displayField", $fromFieldName);
@@ -163,7 +182,7 @@ function createGrid($view) {
 						}
 					}
 					
-					$editor->addRaw("listeners", "{'select': function(combo, record) { $selectFunction }}");
+					$editor->addRaw("listeners", "{'select': function(combo, record, index) { $selectFunction }}");
 					$fieldJS->addRaw("editor", "new Ext.form.ComboBox(" . $editor->printOut() . ")");
 				}
 			}
@@ -198,17 +217,17 @@ function createGrid($view) {
 		<?php
 	}
 	?>
-	function Position<?php echo $view->model->getName() ?>StoreChange(direction) {
-		var record = <?php echo $view->model->getName() ?>Store.currentRow;
+	function Position<?php echo $view->getModel()->getName() ?>StoreChange(direction) {
+		var record = <?php echo $view->getModel()->getName() ?>Store.currentRow;
 		if (record) {
-			var index = <?php echo $view->model->getName() ?>Store.indexOf(record);
-			Position<?php echo $view->model->getName() ?>Store(index + direction);
+			var index = <?php echo $view->getModel()->getName() ?>Store.indexOf(record);
+			Position<?php echo $view->getModel()->getName() ?>Store(index + direction);
 		}
 	}
 	
-	function Position<?php echo $view->model->getName() ?>Store(index) {
+	function Position<?php echo $view->getModel()->getName() ?>Store(index) {
 		var view = <?php echo $view->getName() ?>View;
-		var store = <?php echo $view->model->getName() ?>Store;
+		var store = <?php echo $view->getModel()->getName() ?>Store;
 		var record = store.data.items[index];
 		if (record) {
 			store.currentRow = record;
@@ -217,21 +236,21 @@ function createGrid($view) {
 		}
 	}
 	
-	function Delete<?php echo $view->model->getName() ?>Store() {
+	function Delete<?php echo $view->getModel()->getName() ?>Store() {
 		var rows = <?php echo $view->getName() . "View" ?>.selModel.getSelections();
-		<?php echo $view->model->getName() ?>Store.remove(rows);
+		<?php echo $view->getModel()->getName() ?>Store.remove(rows);
 	}
 
-	function Add<?php echo $view->model->getName() ?>Store() {
-		var store = <?php echo $view->model->getName() ?>Store;
+	function Add<?php echo $view->getModel()->getName() ?>Store() {
+		var store = <?php echo $view->getModel()->getName() ?>Store;
 		var grid = <?php echo $view->getName() ?>View;
 		var obj = store.recordType;
 		var o = new obj({ });
 		<?php
-		foreach ($view->model->fields as $field) {
+		foreach ($view->getModel()->fields as $field) {
 			$default = $field->data["defaultFieldName"];
 			if (strlen($default) > 0) {
-				$view->model->findField($columnID);
+				$view->getModel()->findField($columnID);
 				echo "o.data.".$field->getName()." = store.parentStore.currentRow.data.".$default."; ";
 			}
 			

@@ -180,11 +180,18 @@ class Model extends BaseTable {
 			$o->printOut();
 		}
 		foreach ($this->childModels as $o) {
-			$o->printOut();
+			if ($this->getId() == $o->getId()) {
+				echo "<p>RECURSIVE</p>";
+			} else {
+				$o->printOut();
+			}
 		}
 		echo "</ul>";
 	}
 
+	public function isTop() {
+		return $this->data["parentID"] == "";
+	}
 	/**
 	 * @return SelectSQL
 	 */
@@ -363,7 +370,7 @@ class Reference extends BaseTable {
 	public function getFromField() {
 		if ($this->_fromField == NULL) {
 			if (!is_a($this->model, "Model")) {
-				echo "Model isn't set";
+				echo "FromField Model isn't set";
 			}
 			$this->_fromField = $this->model->findField($this->data["fromColumnID"]);
 		}
@@ -373,11 +380,11 @@ class Reference extends BaseTable {
 	public function getToField() {
 		if ($this->_toField == NULL) {
 			if (!is_a($this->model, "Model")) {
-				echo "Model isn't set";
+				echo "ToField Model isn't set";
 				return null;
 			}
 			if (!is_a($this->model->parent, "Model")) {
-				echo "Model isn't set";
+				echo "ToField Parent Model isn't set";
 				return null;
 			}
 			$this->_toField = $this->model->parent->findField($this->data["toColumnID"]);

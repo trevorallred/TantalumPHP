@@ -47,6 +47,11 @@ class Database {
 		return $rows;
 	}
 	
+	public function foundRows() {
+		$result = $this->select("SELECT FOUND_ROWS() rows");
+		return $result[0]["rows"];
+	}
+	
 	public function update($sql) {
 		$query = $this->_connection->query($sql);
 		if (!$query) {

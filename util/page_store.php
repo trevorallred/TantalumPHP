@@ -17,6 +17,7 @@ function createStore($model) {
 	}
 	$config->addRaw("views", "{}");
 	$config->add("autoDestroy", true);
+	$config->add("totalProperty", "totalCount");
 	$config->add("batch", true);
 	$config->add("autoSave", false);
 	$config->add("pruneModifiedRecords", true);
@@ -55,8 +56,13 @@ function createStore($model) {
 		$config->add("sortInfo", $sort);
 	}
 	$config->add("currentRow", NULL);
+	$config->addRaw("filterChildren", "filter" . $model->getName() . "Children");
 	
 	?>
+	function filter<?php echo $model->getName() ?>Children() {
+		alert("asdf");
+	}
+	
 	Tantalum.<?php echo $model->getName() ?>Store = Ext.extend(Ext.data.JsonStore, {
 		constructor : function(cfg) {
 			cfg = cfg || {};

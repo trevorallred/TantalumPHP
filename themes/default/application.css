@@ -4,3 +4,12 @@
 	font-family: Tahoma;
 	padding: 3em;
 }
+
+.x-grid3-td-linker {
+	cursor: pointer;
+	background: url("../../ext-3.3.1/resources/images/default/toolbar/more.gif") no-repeat;
+}
+
+.x-grid3-col-linker {
+	
+}
