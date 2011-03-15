@@ -21,11 +21,12 @@ Prerequisites
 
 Getting Started with a Developer Installation
 ---------------------------------
-1. Download the latest version of WAMP from http://www.wampserver.com/en/download.php
+1. Download the latest version of WAMP from [http://www.wampserver.com/en/download.php]
 2. Install WAMP to C:\wamp\
 3. If you're only going to run Tantalum, then you can just download TantalumPHP and skip to step 7
-4. If you're going to want to enhance the Tantalum Core, then then you'll need to install Git
+4. If you're going to want to enhance the Tantalum Core, then you'll need to install Git
 See http://help.github.com/win-set-up-git/ for more information
+When installing Git, I picked the Unix line end style, but I'm not sure it will matter on your OS if you use Eclipse.
 5. Signup for a Github account and become a Collaborator on the TantalumPHP project or fork the project. I'm still not sure which is the right approch. See http://help.github.com/fork-a-repo/
 6. Download source and put it into C:\wamp\www\tantalum\
 7. Download and install a MySQL administration tool such as Toad for MySQL or SQL Yog.
